@@ -56,16 +56,6 @@ const ClockIcon = () => (
     <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
   </svg>
 );
-const MenuIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-  </svg>
-);
-const XIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-  </svg>
-);
 const SearchIcon = () => (
   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -74,6 +64,16 @@ const SearchIcon = () => (
 const HomeIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+);
+const ChevronDownIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+);
+const ChevronUpIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15"/>
   </svg>
 );
 
@@ -134,13 +134,82 @@ function HistoryItem({ item, isEditing, editingName, onSelect, onStartEdit, onSa
   );
 }
 
+// ─── Mobile Recent Profiles Strip ─────────────────────────────────────────────
+
+function MobileRecentStrip({ history, onSelect, onDelete, onToggleFav }: {
+  history: any[];
+  onSelect: (item: any) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+  onToggleFav: (id: string, e: React.MouseEvent) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (history.length === 0) return null;
+
+  return (
+    <div className="lg:hidden border-t border-slate-200 dark:border-slate-800/60 bg-white dark:bg-[#090c15]">
+      {/* Toggle header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+          <ClockIcon />
+          Recent Profiles
+          <span className="ml-1 text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full px-1.5 py-0.5 font-bold">
+            {history.length}
+          </span>
+        </span>
+        <span className="text-slate-400">{open ? <ChevronUpIcon /> : <ChevronDownIcon />}</span>
+      </button>
+
+      {/* Expandable list */}
+      {open && (
+        <div className="px-2 pb-3 max-h-64 overflow-y-auto space-y-0.5 animate-fade-in-up">
+          {history.slice(0, 20).map(item => (
+            <div
+              key={item.id}
+              onClick={() => onSelect(item)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === "Enter" && onSelect(item)}
+              className="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-slate-400 flex-shrink-0 border border-blue-100 dark:border-slate-700">
+                {item.name.split(" ").slice(0, 2).map((w: string) => w[0] || "").join("").toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">{item.name}</span>
+                <span className="text-[10px] text-slate-500 block truncate">{item.context}</span>
+              </div>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={e => onToggleFav(item.id, e)}
+                  className={`p-1 rounded ${item.isFavorite ? "text-amber-500" : "text-slate-400 hover:text-amber-500"}`}
+                >
+                  {item.isFavorite ? <StarFilledIcon /> : <StarIcon />}
+                </button>
+                <button
+                  onClick={e => onDelete(item.id, e)}
+                  className="p-1 rounded text-slate-400 hover:text-red-500"
+                >
+                  <TrashIcon />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Research Page ────────────────────────────────────────────────────────────
 
 export default function ResearchPage() {
   const [state, setState] = useState<AppState>({ status: "idle" });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [mobileFormOpen, setMobileFormOpen] = useState(true);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { theme, toggleTheme } = useTheme();
@@ -149,7 +218,7 @@ export default function ResearchPage() {
 
   const handleSubmit = useCallback(async (name: string, context: string) => {
     setState({ status: "loading", name, context });
-    setSidebarOpen(false);
+    setMobileFormOpen(false); // collapse form on mobile after submit
     try {
       const res = await fetch("/api/profile", {
         method: "POST",
@@ -159,6 +228,7 @@ export default function ResearchPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         setState({ status: "error", message: data.error || "We&apos;re experiencing unusually high demand. Please try again shortly.", name, context });
+        setMobileFormOpen(true);
         return;
       }
       setState({ status: "success", profile: data.profile, name, context });
@@ -166,12 +236,13 @@ export default function ResearchPage() {
       toast(`Report for ${name} generated successfully.`, "success");
     } catch {
       setState({ status: "error", message: "Unable to connect. Please check your internet connection and try again.", name, context });
+      setMobileFormOpen(true);
     }
   }, [saveToHistory, toast]);
 
   const handleHistorySelect = useCallback(async (item: any) => {
     setState({ status: "success", profile: item.profile, name: item.name, context: item.context });
-    setSidebarOpen(false);
+    setMobileFormOpen(false);
 
     // Re-resolve image from Wikipedia if not in saved profile
     if (!item.profile.profileImageUrl && item.profile.sources?.length > 0) {
@@ -194,7 +265,11 @@ export default function ResearchPage() {
     toast(`Loaded: ${item.name}`, "success");
   }, [toast]);
 
-  const handleReset = () => { setState({ status: "idle" }); setEditingId(null); };
+  const handleReset = () => {
+    setState({ status: "idle" });
+    setEditingId(null);
+    setMobileFormOpen(true);
+  };
 
   const startEditing = (id: string, name: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -208,7 +283,9 @@ export default function ResearchPage() {
 
   const favorites = history.filter(h => h.isFavorite);
   const recents = history.filter(h => !h.isFavorite).slice(0, 15);
+  const allHistory = history.slice(0, 20);
 
+  // ── Sidebar content (shared between desktop sidebar and mobile) ────────────
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Brand */}
@@ -287,18 +364,23 @@ export default function ResearchPage() {
 
   return (
     <div className="app-shell">
-      {/* Header */}
+
+      {/* ── Shared Header ───────────────────────────────────────────────────── */}
       <header className="app-header no-print px-4 sm:px-5">
         <div className="flex items-center justify-between w-full">
+          {/* Left */}
           <div className="flex items-center gap-3">
-            <button className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar">
-              <MenuIcon />
-            </button>
+            {/* Brand mark visible on mobile (no hamburger needed) */}
+            <div className="lg:hidden flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs">A</div>
+              <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight font-outfit">Aura</span>
+            </div>
             <Link href="/" className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">
               <HomeIcon /> Home
             </Link>
           </div>
 
+          {/* Center — desktop status */}
           <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             {state.status === "success" && (
               <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -315,7 +397,16 @@ export default function ResearchPage() {
             )}
           </div>
 
+          {/* Right */}
           <div className="flex items-center gap-2">
+            {/* Theme toggle — visible on mobile in header */}
+            <button
+              onClick={toggleTheme}
+              className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === "light" ? <MoonIcon /> : <SunIcon />}
+            </button>
             {(state.status === "success" || state.status === "error") && (
               <button onClick={handleReset} className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
                 New Search
@@ -325,84 +416,119 @@ export default function ResearchPage() {
         </div>
       </header>
 
-      {/* Body */}
+      {/* ── Body ────────────────────────────────────────────────────────────── */}
       <div className="app-body">
-        {/* Desktop sidebar */}
+
+        {/* Desktop sidebar — hidden on mobile */}
         <aside className="app-sidebar hidden lg:flex flex-col no-print">
           <SidebarContent />
         </aside>
 
-        {/* Mobile sidebar */}
-        {sidebarOpen && (
-          <>
-            <div className="app-sidebar-overlay no-print" onClick={() => setSidebarOpen(false)} />
-            <div className="app-sidebar-mobile no-print">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-sm font-black text-slate-900 dark:text-white font-outfit">Aura</span>
-                <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-                  <XIcon />
-                </button>
-              </div>
-              <SidebarContent />
-            </div>
-          </>
-        )}
+        {/* ── Mobile + Desktop main content area ─────────────────────────── */}
+        <main className="app-content flex flex-col" role="main" aria-label="Research output">
 
-        {/* Main content */}
-        <main className="app-content" role="main" aria-label="Research output">
-          <div className="max-w-5xl mx-auto px-6 py-6">
-
-            {state.status === "idle" && (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] text-center px-4 animate-fade-in-up">
-                <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 flex items-center justify-center mb-6 text-blue-500">
-                  <SearchIcon />
+          {/* ── MOBILE ONLY: Search Form Panel (always on top) ─────────────── */}
+          <div className="lg:hidden flex-shrink-0 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-[#090c15] no-print">
+            {/* Collapsible toggle for the form when a profile is loaded */}
+            {(state.status === "success" || state.status === "loading") && (
+              <button
+                onClick={() => setMobileFormOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-[9px]">A</div>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {state.status === "loading" ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block" />
+                        Building report…
+                      </span>
+                    ) : (
+                      `${state.name} · ${state.context}`
+                    )}
+                  </span>
                 </div>
-                <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-2 font-outfit tracking-tight">
-                  Research Portal
-                </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm leading-relaxed mb-8">
-                  Enter a public figure&apos;s name and context in the sidebar to generate a citation-backed intelligence report.
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    { name: "Satya Nadella", context: "CEO of Microsoft" },
-                    { name: "Jensen Huang", context: "CEO of NVIDIA" },
-                    { name: "Sam Altman", context: "CEO of OpenAI" },
-                  ].map(s => (
-                    <button key={s.name} onClick={() => handleSubmit(s.name, s.context)}
-                      className="text-xs font-semibold px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-150">
-                      {s.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                <span className="text-slate-400">{mobileFormOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}</span>
+              </button>
             )}
 
-            {state.status === "loading" && <LoadingState />}
-
-            {state.status === "error" && (
-              <div role="alert" aria-live="assertive" className="max-w-lg mx-auto mt-20 text-center animate-fade-in-up">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center mx-auto mb-4 text-slate-500">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                  </svg>
-                </div>
-                <h2 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-2 font-outfit">{state.message}</h2>
-                {state.name && (
-                  <button onClick={() => handleSubmit(state.name!, state.context || "")}
-                    className="mt-4 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity">
-                    Try Again
-                  </button>
+            {/* Form body — always visible on idle, collapsible otherwise */}
+            {(state.status === "idle" || mobileFormOpen) && (
+              <div className="px-4 pb-4 pt-2 space-y-1 animate-fade-in-up">
+                {state.status === "idle" && (
+                  <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-2">Research Target</p>
                 )}
-              </div>
-            )}
-
-            {state.status === "success" && (
-              <div className="animate-fade-in-up">
-                <ProfileReport profile={state.profile} personName={state.name} personContext={state.context} />
+                <ProfileForm onSubmit={handleSubmit} isLoading={state.status === "loading"} inputRef={searchInputRef} />
               </div>
             )}
           </div>
+
+          {/* ── Scrollable content area ─────────────────────────────────── */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+
+              {state.status === "idle" && (
+                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-240px)] text-center px-4 animate-fade-in-up">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 flex items-center justify-center mb-6 text-blue-500">
+                    <SearchIcon />
+                  </div>
+                  <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-2 font-outfit tracking-tight">
+                    Research Portal
+                  </h1>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm leading-relaxed mb-8">
+                    Enter a public figure&apos;s name and context above to generate a citation-backed intelligence report.
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {[
+                      { name: "Satya Nadella", context: "CEO of Microsoft" },
+                      { name: "Jensen Huang", context: "CEO of NVIDIA" },
+                      { name: "Sam Altman", context: "CEO of OpenAI" },
+                    ].map(s => (
+                      <button key={s.name} onClick={() => handleSubmit(s.name, s.context)}
+                        className="text-xs font-semibold px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-150">
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {state.status === "loading" && <LoadingState />}
+
+              {state.status === "error" && (
+                <div role="alert" aria-live="assertive" className="max-w-lg mx-auto mt-20 text-center animate-fade-in-up">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center mx-auto mb-4 text-slate-500">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-2 font-outfit">{state.message}</h2>
+                  {state.name && (
+                    <button onClick={() => handleSubmit(state.name!, state.context || "")}
+                      className="mt-4 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity">
+                      Try Again
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {state.status === "success" && (
+                <div className="animate-fade-in-up">
+                  <ProfileReport profile={state.profile} personName={state.name} personContext={state.context} />
+                </div>
+              )}
+
+            </div>
+
+            {/* ── MOBILE ONLY: Recent profiles below the profile output ──── */}
+            <MobileRecentStrip
+              history={allHistory}
+              onSelect={handleHistorySelect}
+              onDelete={(id, e) => { e.stopPropagation(); deleteEntry(id); }}
+              onToggleFav={(id, e) => { e.stopPropagation(); toggleFavorite(id); }}
+            />
+          </div>
+
         </main>
       </div>
     </div>

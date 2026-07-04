@@ -9,6 +9,12 @@ import { resolveProfileImage } from "@/lib/image-resolver";
 import type { ProfileResponse, ErrorResponse } from "@/types";
 import type { Profile } from "@/lib/schema";
 
+// ─── Vercel Runtime Config ────────────────────────────────────────────────────
+// Extend the serverless function timeout to 60s so long-running profile
+// generation (which can take 25–90s with multiple model fallbacks) never
+// gets cut off by Vercel's default 10s limit.
+export const maxDuration = 60;
+
 // ─── Input Validation ─────────────────────────────────────────────────────────
 
 interface RequestBody {

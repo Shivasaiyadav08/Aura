@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import type { Profile, Source } from "@/lib/schema";
 import { displayValue, isEmpty, sourceIdToNumber } from "@/lib/utils";
 import { useToast } from "@/providers/toast";
@@ -185,6 +185,14 @@ const Icons = {
 function ProfileImage({ imageUrl, name }: { imageUrl: string | null; name: string }) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  // Reset error/loaded state whenever the image URL changes.
+  // Without this, switching from a profile that had a broken image to one
+  // with a valid image would keep imgError=true and show the initials fallback.
+  useEffect(() => {
+    setImgError(false);
+    setImgLoaded(false);
+  }, [imageUrl]);
 
   // Generate initials-based fallback
   const initials = name
@@ -421,8 +429,8 @@ ${profile.biography || "Not publicly available"}
         {(!isEmpty(profile.executiveSummary) || profile.profileImageUrl) && (
           <div className="report-section">
             <div className="flex flex-col md:flex-row gap-7">
-              {/* Profile Image */}
-              <ProfileImage imageUrl={profile.profileImageUrl} name={displayName} />
+              {/* Profile Image — key forces remount (and state reset) when imageUrl changes */}
+              <ProfileImage key={profile.profileImageUrl ?? `no-image-${displayName}`} imageUrl={profile.profileImageUrl} name={displayName} />
 
               {/* Executive Summary */}
               <div className="flex-1 min-w-0">
