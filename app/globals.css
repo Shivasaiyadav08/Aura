@@ -526,3 +526,4 @@
   .print-career-edu, .print-skills, .print-bottom { page-break-inside: avoid; }
   h1, h2, h3 { page-break-after: avoid; color: #111827 !important; }
 }
+

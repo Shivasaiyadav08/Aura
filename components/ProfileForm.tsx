@@ -137,8 +137,8 @@ export function ProfileForm({ onSubmit, isLoading, inputRef }: ProfileFormProps)
 
         {/* Autocomplete suggestions dropdown panel */}
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-18 bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 max-h-60 overflow-y-auto py-1 mt-1 animate-fade-in-up">
-            <div className="px-3.5 py-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-850">
+          <div className="absolute left-0 right-0 top-full bg-white dark:bg-[#0d1220] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl shadow-black/30 z-50 max-h-60 overflow-y-auto py-1 mt-1 animate-fade-in-up">
+            <div className="px-3.5 py-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700/80">
               {name.trim() === "" ? "Trending Figures" : "Suggestions"}
             </div>
             {filteredSuggestions.map((s, idx) => (
@@ -146,13 +146,13 @@ export function ProfileForm({ onSubmit, isLoading, inputRef }: ProfileFormProps)
                 key={idx}
                 type="button"
                 onClick={() => handleSelectSuggestion(s)}
-                className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center justify-between transition-colors text-xs font-semibold"
+                className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center justify-between transition-colors text-xs font-semibold"
               >
                 <div className="min-w-0">
-                  <span className="text-slate-850 dark:text-slate-200 block truncate">{s.name}</span>
+                  <span className="text-slate-800 dark:text-slate-100 block truncate">{s.name}</span>
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal block truncate">{s.context}</span>
                 </div>
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-850 border border-slate-200/40 dark:border-slate-800 rounded px-1.5 py-0.5 uppercase tracking-wider scale-90">
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 uppercase tracking-wider ml-2 shrink-0">
                   {s.category}
                 </span>
               </button>
