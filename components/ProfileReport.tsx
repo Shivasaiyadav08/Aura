@@ -12,7 +12,7 @@ interface ProfileReportProps {
   personContext: string;
 }
 
-// â”€â”€â”€ Helper: Inline Citation Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helper: Inline Citation Badges ──────────────────────────────────────────
 
 function Citations({
   sourceIds,
@@ -44,7 +44,7 @@ function Citations({
   );
 }
 
-// â”€â”€â”€ Helper: Section Label with side rule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helper: Section Label with side rule ────────────────────────────────────
 
 function SectionLabel({
   icon,
@@ -76,7 +76,7 @@ function DocSectionHeader({ icon, label }: { icon: React.ReactNode; label: strin
   );
 }
 
-// â”€â”€â”€ SVG Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
 
 const Icons = {
   user: (
@@ -194,7 +194,7 @@ const Icons = {
   ),
 };
 
-// â”€â”€â”€ Profile Image Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Profile Image Component ──────────────────────────────────────────────────
 
 function ProfileImage({ imageUrl, name }: { imageUrl: string | null; name: string }) {
   const [imgError, setImgError] = useState(false);
@@ -255,7 +255,7 @@ function ProfileImage({ imageUrl, name }: { imageUrl: string | null; name: strin
   );
 }
 
-// â”€â”€â”€ Metric Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Metric Badge ─────────────────────────────────────────────────────────────
 
 function MetricPill({
   label,
@@ -280,12 +280,46 @@ function MetricPill({
   );
 }
 
-// â”€â”€â”€ Main ProfileReport Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function cleanMojibake(str: string): string {
+  if (!str) return str;
+  return str
+    .replace(/â€œ/g, '“')
+    .replace(/â€/g, '”') // Windows-1252 smart quotes
+    .replace(/â€™/g, '’') // apostrophe
+    .replace(/â€”/g, '—') // em dash
+    .replace(/â€“/g, '–') // en dash
+    .replace(/â€¢/g, '•') // bullet
+    .replace(/â€¦/g, '…') // ellipsis
+    .replace(/Â·/g, '·')  // middot
+    .replace(/Â/g, '')     // non-breaking space
+    .replace(/âC"/g, '"')
+    .replace(/âC/g, '"')
+    .replace(/â€/g, '"')
+    .replace(/â/g, "'");
+}
 
-export function ProfileReport({ profile, personName, personContext }: ProfileReportProps) {
+// ─── Main ProfileReport Component ─────────────────────────────────────────────
+
+export function ProfileReport({ profile: rawProfile, personName, personContext }: ProfileReportProps) {
   const { toast } = useToast();
 
-  // â”€â”€ Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Dynamically sanitize the profile object to clean up all encoding/mojibake corruption
+  const profile = useMemo(() => {
+    try {
+      return JSON.parse(JSON.stringify(rawProfile), (key, value) => {
+        if (typeof value === "string") {
+          return cleanMojibake(value);
+        }
+        return value;
+      }) as Profile;
+    } catch (e) {
+      console.warn("Failed to sanitize profile string encodings", e);
+      return rawProfile;
+    }
+  }, [rawProfile]);
+
+
+  // ── Metrics ───────────────────────────────────────────────────────────────
   const metrics = useMemo(() => {
     const textToAnalyze = [
       profile.executiveSummary || "",
@@ -321,7 +355,7 @@ export function ProfileReport({ profile, personName, personContext }: ProfileRep
     return { readingTime, completeness, avgConfidence };
   }, [profile]);
 
-  // â”€â”€ Copy helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Copy helpers ──────────────────────────────────────────────────────────
   const copySection = useCallback((title: string, text: string) => {
     navigator.clipboard.writeText(text);
     toast(`${title} copied!`, "success");
@@ -404,13 +438,13 @@ ${profile.biography || "Not publicly available"}
         </div>
       </div>
 
-      {/* â”€â”€ Report Document â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Report Document ──────────────────────────────────────────────── */}
       <article className="report-document overflow-hidden">
 
-        {/* â•â• DOCUMENT TITLE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ DOCUMENT TITLE ══════════════════════════════════════════════ */}
         <div className="px-8 pt-8 pb-5 text-center border-b-2 border-blue-600 dark:border-blue-500">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-1">
-            Intelligence Report Â· {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+            Intelligence Report · {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
           </p>
           <h1 className="text-[22px] md:text-[28px] font-black tracking-widest uppercase text-slate-900 dark:text-white font-outfit">
             Profile: {displayName}
@@ -420,12 +454,12 @@ ${profile.biography || "Not publicly available"}
               {[
                 profile.basicDetails.currentRole,
                 profile.basicDetails.currentCompany,
-              ].filter(v => !isEmpty(v as string)).join("  Â·  ")}
+              ].filter(v => !isEmpty(v as string)).join("  ·  ")}
             </p>
           )}
         </div>
 
-        {/* â•â• HERO: Image + Executive Summary â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ HERO: Image + Executive Summary ════════════════════════════ */}
         <div className="report-section print-hero">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Profile photo */}
@@ -460,7 +494,7 @@ ${profile.biography || "Not publicly available"}
           </div>
         </div>
 
-        {/* â•â• BASIC DETAILS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ BASIC DETAILS ═══════════════════════════════════════════════ */}
         <div className="report-section print-details">
           <DocSectionHeader icon={Icons.list} label="Basic Details" />
           <div className="overflow-x-auto mt-3">
@@ -485,7 +519,7 @@ ${profile.biography || "Not publicly available"}
                   ].map((val, i) => (
                     <td key={i}>
                       {isEmpty(val as string) ? (
-                        <span className="text-slate-350 dark:text-slate-600 italic text-[12px]">â€”</span>
+                        <span className="text-slate-350 dark:text-slate-600 italic text-[12px]">—</span>
                       ) : i === 6 && !isEmpty(val as string) ? (() => {
                           const raw = val as string;
                           const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
@@ -521,7 +555,7 @@ ${profile.biography || "Not publicly available"}
           )}
         </div>
 
-        {/* â•â• BIOGRAPHY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ BIOGRAPHY ═══════════════════════════════════════════════════ */}
         {!isEmpty(profile.biography) && (
           <div className="report-section print-bio">
             <DocSectionHeader icon={Icons.book} label="Biography / Summary" />
@@ -531,7 +565,7 @@ ${profile.biography || "Not publicly available"}
           </div>
         )}
 
-        {/* â•â• CAREER + EDUCATION (2-col) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ CAREER + EDUCATION (2-col) ══════════════════════════════════ */}
         <div className="report-section print-career-edu grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* Career Timeline */}
@@ -544,7 +578,7 @@ ${profile.biography || "Not publicly available"}
                 {profile.careerTimeline.map((item, idx) => (
                   <li key={idx} className="flex gap-3 text-[13px] text-slate-700 dark:text-slate-300">
                     <span className="flex-shrink-0 font-bold font-mono text-blue-600 dark:text-blue-400 w-10 text-right">{item.year}</span>
-                    <span className="text-slate-300 dark:text-slate-600">Â·</span>
+                    <span className="text-slate-300 dark:text-slate-600">·</span>
                     <span className="flex-1 leading-relaxed">
                       {item.event}
                       <Citations sourceIds={item.sourceIds} sources={profile.sources} />
@@ -564,14 +598,14 @@ ${profile.biography || "Not publicly available"}
               <ul className="mt-3 space-y-2.5">
                 {profile.education.map((item, idx) => (
                   <li key={idx} className="flex gap-2 text-[13px]">
-                    <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">â€¢</span>
+                    <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">•</span>
                     <span className="flex-1 leading-relaxed">
                       <span className="font-semibold text-slate-800 dark:text-slate-200">{displayValue(item.institution)}</span>
                       <Citations sourceIds={item.sourceIds} sources={profile.sources} />
                       <br />
                       <span className="text-slate-500 dark:text-slate-400 text-[12px]">
                         {[item.degree, item.field ? `in ${item.field}` : null].filter(Boolean).join(" ")}
-                        {item.year && <span className="ml-1 text-slate-400">Â· {item.year}</span>}
+                        {item.year && <span className="ml-1 text-slate-400">· {item.year}</span>}
                       </span>
                     </span>
                   </li>
@@ -581,7 +615,7 @@ ${profile.biography || "Not publicly available"}
           </div>
         </div>
 
-        {/* â•â• SKILLS + INTERESTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ SKILLS + INTERESTS ══════════════════════════════════════════ */}
         {((profile.skills && profile.skills.length > 0) || (profile.interests && profile.interests.length > 0)) && (
           <div className="report-section print-skills grid grid-cols-1 md:grid-cols-2 gap-8">
             {profile.skills && profile.skills.length > 0 && (
@@ -600,9 +634,9 @@ ${profile.biography || "Not publicly available"}
                 <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
                   {profile.interests.map((item, idx) => (
                     <div key={idx} className="flex gap-1.5 text-[12px] text-slate-700 dark:text-slate-300 items-start">
-                      <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">â€¢</span>
+                      <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">•</span>
                       <span>{item.name}
-                        {item.description && <span className="text-slate-400 text-[11px]"> â€” {item.description}</span>}
+                        {item.description && <span className="text-slate-400 text-[11px]"> — {item.description}</span>}
                         <Citations sourceIds={item.sourceIds} sources={profile.sources} />
                       </span>
                     </div>
@@ -613,14 +647,14 @@ ${profile.biography || "Not publicly available"}
           </div>
         )}
 
-        {/* â•â• ACHIEVEMENTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ ACHIEVEMENTS ════════════════════════════════════════════════ */}
         {profile.achievements && profile.achievements.length > 0 && (
           <div className="report-section">
             <DocSectionHeader icon={Icons.star} label="Achievements" />
             <div className="mt-3 space-y-2">
               {profile.achievements.map((item, idx) => (
                 <div key={idx} className="flex gap-3 p-3 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50">
-                  <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">â€¢</span>
+                  <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">•</span>
                   <div>
                     <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
                       {item.title}
@@ -635,7 +669,7 @@ ${profile.biography || "Not publicly available"}
           </div>
         )}
 
-        {/* â•â• AWARDS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ AWARDS ══════════════════════════════════════════════════════ */}
         {profile.awards && profile.awards.length > 0 && (
           <div className="report-section">
             <DocSectionHeader icon={Icons.award} label="Awards & Honours" />
@@ -657,7 +691,7 @@ ${profile.biography || "Not publicly available"}
           </div>
         )}
 
-        {/* â•â• COMPANIES & BOOKS & INVESTMENTS (optional sections) â•â•â•â•â•â•â•â•â• */}
+        {/* ══ COMPANIES & BOOKS & INVESTMENTS (optional sections) ═════════ */}
         {profile.companies && profile.companies.length > 0 && (
           <div className="report-section">
             <DocSectionHeader icon={Icons.building} label="Companies & Affiliations" />
@@ -668,8 +702,8 @@ ${profile.biography || "Not publicly available"}
                   {profile.companies.map((item, idx) => (
                     <tr key={idx}>
                       <td className="font-semibold text-slate-800 dark:text-slate-200">{item.name}<Citations sourceIds={item.sourceIds} sources={profile.sources} /></td>
-                      <td>{isEmpty(item.role) ? <span className="text-slate-400 italic text-[12px]">â€”</span> : item.role}</td>
-                      <td>{isEmpty(item.period) ? <span className="text-slate-400 italic text-[12px]">â€”</span> : item.period}</td>
+                      <td>{isEmpty(item.role) ? <span className="text-slate-400 italic text-[12px]">—</span> : item.role}</td>
+                      <td>{isEmpty(item.period) ? <span className="text-slate-400 italic text-[12px]">—</span> : item.period}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -684,11 +718,11 @@ ${profile.biography || "Not publicly available"}
             <ul className="mt-3 space-y-2">
               {profile.books.map((item, idx) => (
                 <li key={idx} className="flex gap-2 text-[13px]">
-                  <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">â€¢</span>
+                  <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">•</span>
                   <span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">{item.title}</span>
                     <Citations sourceIds={item.sourceIds} sources={profile.sources} />
-                    <span className="text-slate-400 text-[12px] ml-1">â€” {[item.publisher, item.year].filter(Boolean).join(" Â· ")}</span>
+                    <span className="text-slate-400 text-[12px] ml-1">— {[item.publisher, item.year].filter(Boolean).join(" · ")}</span>
                   </span>
                 </li>
               ))}
@@ -707,7 +741,7 @@ ${profile.biography || "Not publicly available"}
                     <tr key={idx}>
                       <td className="font-semibold text-slate-800 dark:text-slate-200">{item.company}<Citations sourceIds={item.sourceIds} sources={profile.sources} /></td>
                       <td>{isEmpty(item.amount) ? <span className="text-slate-400 italic text-[12px]">Undisclosed</span> : item.amount}</td>
-                      <td>{isEmpty(item.year) ? <span className="text-slate-400 italic text-[12px]">â€”</span> : item.year}</td>
+                      <td>{isEmpty(item.year) ? <span className="text-slate-400 italic text-[12px]">—</span> : item.year}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -716,7 +750,7 @@ ${profile.biography || "Not publicly available"}
           </div>
         )}
 
-        {/* â•â• BOTTOM 3-COL: Net Worth | Recent Activities | References â•â•â•â• */}
+        {/* ══ BOTTOM 3-COL: Net Worth | Recent Activities | References ════ */}
         <div className="report-section print-bottom grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* Net Worth */}
@@ -750,7 +784,7 @@ ${profile.biography || "Not publicly available"}
               <ul className="mt-3 space-y-2">
                 {profile.recentActivities.slice(0, 6).map((item, idx) => (
                   <li key={idx} className="flex gap-2 text-[12px] text-slate-700 dark:text-slate-300 items-start">
-                    <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">â€¢</span>
+                    <span className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0">•</span>
                     <span className="leading-relaxed">
                       <span className="font-medium">{item.title}</span>
                       {item.date && <span className="text-slate-400 ml-1 text-[10px]">({item.date})</span>}
@@ -792,13 +826,13 @@ ${profile.biography || "Not publicly available"}
           </div>
         </div>
 
-        {/* â•â• DOCUMENT FOOTER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══ DOCUMENT FOOTER ═════════════════════════════════════════════ */}
         <div className="px-8 py-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/60">
           <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed text-center">
             <strong className="font-semibold">Note:</strong>{" "}
             Information compiled from publicly available sources as of{" "}
             {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}.
-            Data is subject to change. Generated by AI â€” verify with primary sources before decisions.
+            Data is subject to change. Generated by AI — verify with primary sources before decisions.
           </p>
         </div>
       </article>

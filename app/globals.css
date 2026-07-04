@@ -23,9 +23,9 @@
   ::-webkit-scrollbar-thumb:hover { @apply bg-slate-300 dark:bg-slate-700; }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ════════════════════════════════════════════════════════════════════════════
    FIXED SHELL LAYOUT
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ══════════════════════════════════════════════════════════════════════════ */
 
 @layer components {
 
@@ -84,12 +84,12 @@
     @apply fixed top-0 left-0 h-full w-80 bg-white dark:bg-[#090c15] border-r border-slate-200 dark:border-slate-800 z-50 overflow-y-auto shadow-2xl;
   }
 
-  /* â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Cards ──────────────────────────────────────────────────────────────── */
   .card {
     @apply bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800/70 rounded-2xl shadow-sm;
   }
 
-  /* â”€â”€ Report Document â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Report Document ─────────────────────────────────────────────────────── */
   .report-document {
     @apply bg-white dark:bg-[#0f1623] border border-slate-200 dark:border-slate-800/50 rounded-2xl;
     box-shadow: 0 4px 48px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
@@ -98,12 +98,12 @@
     box-shadow: 0 4px 48px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2);
   }
 
-  /* â”€â”€ Report Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Report Section ─────────────────────────────────────────────────────── */
   .report-section {
     @apply px-8 py-7 border-b border-slate-100 dark:border-slate-800/70 last:border-b-0;
   }
 
-  /* â”€â”€ Section Label â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Section Label ──────────────────────────────────────────────────────── */
   .report-section-label { @apply flex items-center gap-2.5 mb-5; }
 
   /* CONTRAST FIX: was text-slate-400 (fails WCAG in light) â†’ text-slate-500 */
@@ -115,7 +115,7 @@
     @apply flex-1 h-px bg-slate-200 dark:bg-slate-800/70;
   }
 
-  /* â”€â”€ Report Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Report Table ────────────────────────────────────────────────────────── */
   .report-table { @apply w-full border-collapse text-sm; }
   .report-table th {
     /* CONTRAST FIX: was text-slate-400 â†’ text-slate-600 in light mode */
@@ -130,7 +130,7 @@
            border border-slate-100 dark:border-slate-800/60 align-top;
   }
 
-  /* â”€â”€ Citation Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Citation Badge ─────────────────────────────────────────────────────── */
   .citation {
     @apply inline-flex items-center justify-center text-[9px] font-bold
            text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30
@@ -139,14 +139,14 @@
            transition-all duration-150 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:scale-110;
   }
 
-  /* â”€â”€ Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Timeline ────────────────────────────────────────────────────────────── */
   .timeline-track { @apply absolute left-0 top-2 bottom-0 w-px bg-slate-200 dark:bg-slate-800; }
   .timeline-dot {
     @apply absolute left-0 -translate-x-1/2 w-2 h-2 rounded-full
            bg-blue-600 dark:bg-blue-500 ring-4 ring-white dark:ring-[#0f1623] mt-2;
   }
 
-  /* â”€â”€ Tag Pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Tag Pills ───────────────────────────────────────────────────────────── */
   .report-tag {
     /* CONTRAST FIX: was text-slate-700 + bg-slate-100 â†’ ensured dark enough */
     @apply inline-flex items-center gap-1 text-[12px] font-medium text-slate-700 dark:text-slate-300
@@ -154,7 +154,7 @@
            rounded-full px-3 py-1;
   }
 
-  /* â”€â”€ Status Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Status Badges ──────────────────────────────────────────────────────── */
   .badge-well-sourced {
     @apply inline-flex items-center gap-1.5 text-[11px] font-semibold
            text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20
@@ -166,13 +166,13 @@
            border border-amber-300 dark:border-amber-800/30 rounded-full px-3 py-1;
   }
 
-  /* â”€â”€ Action Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Action Bar ─────────────────────────────────────────────────────────── */
   .action-bar {
     @apply sticky top-0 z-30 bg-white/95 dark:bg-[#0f1623]/95
            border-b border-slate-200 dark:border-slate-800/60 backdrop-blur-md;
   }
 
-  /* â”€â”€ Net Worth / Education Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Net Worth / Education Cards ─────────────────────────────────────────── */
   .networth-card {
     @apply bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-xl p-5;
   }
@@ -180,37 +180,37 @@
     @apply flex gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50;
   }
 
-  /* â”€â”€ News Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── News Card ───────────────────────────────────────────────────────────── */
   .news-card {
     @apply flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30
            border border-slate-150 dark:border-slate-800/50
            hover:border-slate-300 dark:hover:border-slate-700 transition-colors duration-150;
   }
 
-  /* â”€â”€ Reference Item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Reference Item ─────────────────────────────────────────────────────── */
   .ref-item {
     @apply flex gap-3 py-3 border-b border-slate-100 dark:border-slate-800/60 last:border-b-0;
   }
 
-  /* â”€â”€ Sidebar titles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Sidebar titles ─────────────────────────────────────────────────────── */
   /* CONTRAST FIX: text-slate-400 â†’ text-slate-500 */
   .sidebar-section-title {
     @apply text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-500 px-4 pt-5 pb-2;
   }
 
-  /* â”€â”€ Landing page full-height shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Landing page full-height shell ────────────────────────────────────── */
   .landing-shell {
     height: 100vh;
     overflow-y: auto;
   }
 
-  /* â”€â”€ Mobile search panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Mobile search panel ─────────────────────────────────────────────────── */
   .mobile-search-panel {
     @apply bg-white dark:bg-[#090c15]
            border-b border-slate-200 dark:border-slate-800/60;
   }
 
-  /* â”€â”€ Mobile recent strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Mobile recent strip ─────────────────────────────────────────────────── */
   .mobile-recent-strip {
     @apply bg-white dark:bg-[#090c15]
            border-t border-slate-200 dark:border-slate-800/60;
@@ -218,9 +218,9 @@
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ════════════════════════════════════════════════════════════════════════════
    UTILITIES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ══════════════════════════════════════════════════════════════════════════ */
 
 @layer utilities {
   .gradient-text {
@@ -232,9 +232,9 @@
   .border-slate-150 { border-color: #edf0f4; }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ════════════════════════════════════════════════════════════════════════════
    ANIMATIONS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ══════════════════════════════════════════════════════════════════════════ */
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
@@ -275,11 +275,11 @@
   animation: skeletonPulse 1.4s infinite linear;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ════════════════════════════════════════════════════════════════════════════
    PRINT / PDF
    All dark-mode overrides are handled in JS (exportToPdf removes .dark class).
    This CSS handles layout + content visibility for print.
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ══════════════════════════════════════════════════════════════════════════ */
 
 @media print {
   /* ── PAGE SETUP ─────────────────────────────────────────────────────── */
@@ -296,11 +296,11 @@
   /* Force all colors to print exactly (background, text, borders) */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  /* Force light-mode colors on every element */
-  *:not(svg):not(path) {
-    background-color: transparent !important;
+  /* Reset layout parent backgrounds so they don't cover/darken the page */
+  .app-shell, .app-body, .app-content, .app-content > div {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #111827 !important;
-    border-color: #e5e7eb !important;
   }
 
   /* ── HIDE UI CHROME ──────────────────────────────────────────────────── */
@@ -424,7 +424,7 @@
   /* ── CAREER + EDUCATION (2-col) ──────────────────────────────────────── */
   .print-career-edu {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 10pt !important;
     padding: 5pt 10pt !important;
   }
@@ -444,7 +444,7 @@
   /* ── SKILLS + INTERESTS (2-col) ──────────────────────────────────────── */
   .print-skills {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 10pt !important;
     padding: 5pt 10pt !important;
   }
@@ -476,13 +476,13 @@
   /* ── BOTTOM 3-COL: Net Worth | Recent News | References ──────────────── */
   .print-bottom {
     display: grid !important;
-    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 8pt !important;
     padding: 5pt 10pt !important;
     align-items: start !important;
   }
   /* Each column */
-  .print-bottom > div { overflow: hidden !important; }
+  .print-bottom > div { overflow: hidden !important; min-width: 0 !important; }
 
   /* Net worth value */
   .print-bottom .font-black { font-size: 10pt !important; color: #2563eb !important; font-weight: 900 !important; line-height: 1.2 !important; }
@@ -525,5 +525,12 @@
   .print-title, .print-hero, .print-details, .print-bio { page-break-inside: avoid; }
   .print-career-edu, .print-skills, .print-bottom { page-break-inside: avoid; }
   h1, h2, h3 { page-break-after: avoid; color: #111827 !important; }
-}
 
+  /* ── GLOBAL TEXT WRAPPING & WORD BREAKS FOR PRINT ────────────────────── */
+  p, span, li, td, th, div, a {
+    font-size: 7.0pt !important;
+    line-height: 1.32 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+}
