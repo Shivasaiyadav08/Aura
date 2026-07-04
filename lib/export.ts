@@ -1,42 +1,44 @@
 import type { Profile } from "@/lib/schema";
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
-// 1. Forces light theme (avoids dark-mode PDF mess)
-// 2. Hides toast/alert overlays so they don't bleed into the PDF
-// 3. Restores everything after the print dialog closes
-
 export function exportToPdf(): void {
   if (typeof window === "undefined") return;
 
   const html = document.documentElement;
   const wasDark = html.classList.contains("dark");
 
-  // Switch to light mode for clean PDF output
-  if (wasDark) html.classList.remove("dark");
+  // 1. Force light mode — remove dark class so no dark Tailwind styles apply
+  html.classList.remove("dark");
 
-  // Hide all toast/notification overlays immediately
+  // 2. Also add a print-mode marker class for extra CSS targeting
+  html.classList.add("print-mode");
+
+  // 3. Hide all toast/alert overlays before printing
   const hiddenEls: { el: HTMLElement; prev: string }[] = [];
   const hide = (el: HTMLElement) => {
     hiddenEls.push({ el, prev: el.style.display });
     el.style.display = "none";
   };
-
-  // Toast container sits in a fixed bottom-right div
   document.querySelectorAll<HTMLElement>('[role="alert"]').forEach(hide);
-  // Also hide any fixed overlay containers
-  document.querySelectorAll<HTMLElement>(".fixed.bottom-6, .fixed.bottom-4").forEach(hide);
+  document.querySelectorAll<HTMLElement>(".no-print").forEach(hide);
+  // Also hide any fixed overlays (dropdowns, modals, toasts)
+  document.querySelectorAll<HTMLElement>(".fixed").forEach(el => {
+    // Only hide things that are NOT the report itself
+    if (!el.closest(".report-document")) hide(el);
+  });
 
-  // Restore everything after print dialog closes
+  // 4. Restore everything after the print dialog closes
   const restore = () => {
     if (wasDark) html.classList.add("dark");
+    html.classList.remove("print-mode");
     hiddenEls.forEach(({ el, prev }) => { el.style.display = prev; });
   };
   window.addEventListener("afterprint", restore, { once: true });
 
-  // Delay so browser re-renders cleanly (no toast flicker) before print
+  // 5. Delay so browser re-renders in light mode before opening print dialog
   setTimeout(() => {
     window.print();
-  }, 200);
+  }, 250);
 }
 
 // ─── JSON Export ─────────────────────────────────────────────────────────────
