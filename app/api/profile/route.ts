@@ -182,10 +182,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<ProfileRe
       }
     }
 
-    // 7. Resolve profile image (non-fatal)
+    // 7. Resolve profile image — uses rich query (name + role + company + context)
+    //    and Gemini Vision verification. Non-fatal if it fails.
     if (!result.profile.profileImageUrl) {
       try {
-        const imageUrl = await resolveProfileImage(result.profile.sources, name);
+        const imageUrl = await resolveProfileImage(
+          result.profile.sources,
+          name,
+          context,
+          {
+            occupation : result.profile.basicDetails?.occupation,
+            company    : result.profile.basicDetails?.currentCompany,
+            industry   : result.profile.basicDetails?.industry,
+            nationality: result.profile.basicDetails?.nationality,
+          }
+        );
         if (imageUrl) result.profile.profileImageUrl = imageUrl;
       } catch {
         // Non-fatal — silently skip
