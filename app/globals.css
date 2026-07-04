@@ -282,23 +282,28 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 @media print {
-  /* Reset layout so full content is visible */
+  /* ── Page setup ─────────────────────────────────────────────────────── */
+  @page {
+    margin: 1.2cm 1.8cm;
+    size: A4 portrait;
+  }
+
   html, body {
     height: auto !important;
     overflow: visible !important;
     background: #ffffff !important;
     color: #111827 !important;
-    font-size: 11pt;
+    font-size: 10.5pt;
     font-family: 'Inter', sans-serif;
   }
 
-  /* Force light colors for everything */
+  /* Preserve exact colors (blue headers, badges, etc.) */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Hide UI chrome */
+  /* ── Hide UI chrome ──────────────────────────────────────────────────── */
   .app-header,
   .app-sidebar,
   .app-sidebar-mobile,
@@ -306,76 +311,141 @@
   .action-bar,
   .no-print { display: none !important; }
 
-  /* Fix layout for print */
-  .app-body { display: block !important; overflow: visible !important; }
-  .app-content { overflow: visible !important; width: 100% !important; }
-  .app-shell { height: auto !important; overflow: visible !important; display: block !important; }
+  /* ── Fix layout for print ────────────────────────────────────────────── */
+  .app-body    { display: block !important; overflow: visible !important; }
+  .app-content { overflow: visible !important; width: 100% !important; padding: 0 !important; }
+  .app-shell   { height: auto !important; overflow: visible !important; display: block !important; }
 
-  /* Report document */
+  /* ── Report document wrapper ─────────────────────────────────────────── */
   .report-document {
-    border: none !important;
+    border: 1px solid #d1d5db !important;
     box-shadow: none !important;
-    border-radius: 0 !important;
-    background: white !important;
+    border-radius: 4px !important;
+    background: #ffffff !important;
     width: 100% !important;
   }
 
-  /* Sections */
+  /* ── Document title block (PROFILE: NAME, blue double underline) ─────── */
+  .report-document > div:first-child {
+    border-bottom: 2px solid #2563eb !important;
+    text-align: center !important;
+    padding: 14pt 20pt 10pt !important;
+    background: #ffffff !important;
+  }
+
+  /* ── Sections ────────────────────────────────────────────────────────── */
   .report-section {
     border-bottom: 1px solid #e5e7eb !important;
     animation: none !important;
     break-inside: avoid;
-    padding: 16pt 20pt !important;
-    background: white !important;
+    page-break-inside: avoid;
+    padding: 12pt 20pt !important;
+    background: #ffffff !important;
   }
 
-  /* Table */
+  /* 2-col and 3-col grids: keep as columns in print */
+  .report-section.grid {
+    display: grid !important;
+  }
+  .report-section.grid-cols-1.lg\:grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+    column-gap: 24pt !important;
+  }
+  .report-section.md\:grid-cols-3 {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    column-gap: 16pt !important;
+  }
+  .report-section.md\:grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+    column-gap: 24pt !important;
+  }
+
+  /* ── DocSectionHeader (blue icon box + bold label) ───────────────────── */
+  .report-section > div > div:first-child,
+  .report-section > div:first-child {
+    page-break-after: avoid;
+  }
+
+  /* Blue icon box — must print in color */
+  [class*="bg-blue-600"],
+  [class*="bg-blue-700"] {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+  }
+
+  /* ── Tables ──────────────────────────────────────────────────────────── */
+  .report-table {
+    width: 100% !important;
+    font-size: 9pt !important;
+  }
   .report-table th {
-    background: #f9fafb !important;
+    background: #f3f4f6 !important;
     color: #374151 !important;
-    border-color: #e5e7eb !important;
+    border-color: #d1d5db !important;
+    font-size: 8pt !important;
+    padding: 5pt 8pt !important;
   }
   .report-table td {
     color: #1f2937 !important;
     border-color: #e5e7eb !important;
-    background: white !important;
+    background: #ffffff !important;
+    padding: 5pt 8pt !important;
+    font-size: 9pt !important;
   }
 
-  /* Section labels */
-  .report-section-label-text { color: #6b7280 !important; }
+  /* ── Section label fallback ──────────────────────────────────────────── */
+  .report-section-label-text { color: #6b7280 !important; font-size: 8pt !important; }
   .report-section-label-line { background: #e5e7eb !important; }
 
-  /* Timeline */
-  .timeline-track { background: #d1d5db !important; }
-  .timeline-dot { background: #2563eb !important; ring-color: white !important; }
-
-  /* Citations */
+  /* ── Citations ───────────────────────────────────────────────────────── */
   .citation {
     border: 1px solid #2563eb !important;
     color: #2563eb !important;
     background: #eff6ff !important;
+    font-size: 7pt !important;
   }
 
-  /* Cards */
+  /* ── Cards ───────────────────────────────────────────────────────────── */
   .networth-card, .edu-card, .news-card {
     background: #f9fafb !important;
     border-color: #e5e7eb !important;
   }
 
-  /* Tags and badges */
-  .report-tag { background: #f1f5f9 !important; color: #374151 !important; border-color: #e2e8f0 !important; }
+  /* ── Tags & badges ───────────────────────────────────────────────────── */
+  .report-tag {
+    background: #f1f5f9 !important;
+    color: #374151 !important;
+    border-color: #e2e8f0 !important;
+    font-size: 8pt !important;
+  }
   .badge-well-sourced { background: #f0fdf4 !important; color: #166534 !important; border-color: #bbf7d0 !important; }
-  .badge-limited { background: #fffbeb !important; color: #92400e !important; border-color: #fde68a !important; }
+  .badge-limited      { background: #fffbeb !important; color: #92400e !important; border-color: #fde68a !important; }
 
-  /* Links */
+  /* ── Links ───────────────────────────────────────────────────────────── */
   a { color: #2563eb !important; text-decoration: underline !important; }
 
-  /* Page break control */
-  h1, h2, h3 { page-break-after: avoid; }
-  .report-section { page-break-inside: avoid; }
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  h1 { font-size: 18pt !important; page-break-after: avoid; }
+  h2, h3 { page-break-after: avoid; }
 
-  @page {
-    margin: 1.5cm 2cm;
-    size: A4 portrait;
+  /* ── Document footer ─────────────────────────────────────────────────── */
+  .report-document > div:last-child {
+    background: #f9fafb !important;
+    border-top: 1px solid #e5e7eb !important;
+    text-align: center !important;
+    font-size: 7.5pt !important;
+    color: #9ca3af !important;
+    padding: 8pt 20pt !important;
   }
+
+  /* ── Profile image ───────────────────────────────────────────────────── */
+  img {
+    max-width: 140pt !important;
+    break-inside: avoid;
+    border-radius: 6pt !important;
+  }
+
+  /* ── Prevent orphan section headers ─────────────────────────────────── */
+  .report-section { page-break-inside: avoid; }
 }
+
