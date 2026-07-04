@@ -182,12 +182,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ProfileRe
       }
     }
 
-    // 7. Resolve profile image — uses rich query (name + role + company + context)
-    //    and Gemini Vision verification. Non-fatal if it fails.
+    // 7. Resolve profile image — entity-accurate ImageSearchService:
+    //    Extracts metadata from Tavily results → builds rich query →
+    //    multi-source providers → identity scoring → Gemini Vision verify
+    //    Non-fatal: any failure falls back gracefully to initials.
     if (!result.profile.profileImageUrl) {
       try {
         const imageUrl = await resolveProfileImage(
-          result.profile.sources,
+          sources,                                           // full NormalizedSource[] with content
           name,
           context,
           {
@@ -195,11 +197,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<ProfileRe
             company    : result.profile.basicDetails?.currentCompany,
             industry   : result.profile.basicDetails?.industry,
             nationality: result.profile.basicDetails?.nationality,
+            location   : [
+              result.profile.basicDetails?.currentCity,
+              result.profile.basicDetails?.currentCountry,
+            ].filter(Boolean).join(" ") || undefined,
           }
         );
         if (imageUrl) result.profile.profileImageUrl = imageUrl;
-      } catch {
-        // Non-fatal — silently skip
+      } catch (err) {
+        console.warn("[Profile API] Image resolution failed (non-fatal):", err);
       }
     }
 
