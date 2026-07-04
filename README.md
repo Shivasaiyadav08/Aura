@@ -256,7 +256,6 @@ npm run dev
 | Variable | Required | Description |
 |----------|:--------:|-------------|
 | `GEMINI_API_KEY` | ✅ | Primary Gemini key |
-| `GEMINI_API_KEY_1` – `_4` | Recommended | One per Google account — enables 16-attempt chain |
 | `TAVILY_API_KEY` | ✅ | Web search |
 | `REDIS_URL` | Optional | Persistent cache (Upstash recommended) |
 | `NEXT_PUBLIC_APP_URL` | Optional | Absolute URL for metadata |
