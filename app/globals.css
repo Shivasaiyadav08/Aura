@@ -1,0 +1,361 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonts loaded here (not in layout to avoid Next.js no-page-custom-font warning) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+@layer base {
+  html {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-white dark:bg-[#06090f] text-slate-900 dark:text-slate-100;
+  }
+
+  /* Thin custom scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-200 dark:bg-slate-800 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-slate-300 dark:bg-slate-700; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FIXED SHELL LAYOUT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
+    @apply bg-slate-50 dark:bg-[#0a0d14];
+  }
+
+  .app-header {
+    height: 52px;
+    flex-shrink: 0;
+    @apply bg-white/90 dark:bg-[#080b12]/90 border-b border-slate-200 dark:border-slate-800/70 backdrop-blur-md z-40;
+    display: flex;
+    align-items: center;
+  }
+
+  .app-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .app-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    @apply border-r border-slate-200 dark:border-slate-800/60 bg-white dark:bg-[#090c15];
+  }
+
+  .app-content {
+    flex: 1;
+    overflow-y: auto;
+    min-width: 0;
+    @apply bg-[#f4f6f9] dark:bg-[#0a0d14];
+  }
+
+  /* Mobile overlays */
+  .app-sidebar-overlay {
+    @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-40;
+  }
+  .app-sidebar-mobile {
+    @apply fixed top-0 left-0 h-full w-80 bg-white dark:bg-[#090c15] border-r border-slate-200 dark:border-slate-800 z-50 overflow-y-auto shadow-2xl;
+  }
+
+  /* ── Cards ──────────────────────────────────────────────────────────────── */
+  .card {
+    @apply bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800/70 rounded-2xl shadow-sm;
+  }
+
+  /* ── Report Document ─────────────────────────────────────────────────────── */
+  .report-document {
+    @apply bg-white dark:bg-[#0f1623] border border-slate-200 dark:border-slate-800/50 rounded-2xl;
+    box-shadow: 0 4px 48px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .dark .report-document {
+    box-shadow: 0 4px 48px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  /* ── Report Section ─────────────────────────────────────────────────────── */
+  .report-section {
+    @apply px-8 py-7 border-b border-slate-100 dark:border-slate-800/70 last:border-b-0;
+  }
+
+  /* ── Section Label ──────────────────────────────────────────────────────── */
+  .report-section-label { @apply flex items-center gap-2.5 mb-5; }
+
+  /* CONTRAST FIX: was text-slate-400 (fails WCAG in light) → text-slate-500 */
+  .report-section-label-text {
+    font-family: 'Inter', sans-serif;
+    @apply text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500;
+  }
+  .report-section-label-line {
+    @apply flex-1 h-px bg-slate-200 dark:bg-slate-800/70;
+  }
+
+  /* ── Report Table ────────────────────────────────────────────────────────── */
+  .report-table { @apply w-full border-collapse text-sm; }
+  .report-table th {
+    /* CONTRAST FIX: was text-slate-400 → text-slate-600 in light mode */
+    @apply text-left py-2.5 px-4 text-[10px] font-bold uppercase tracking-widest
+           text-slate-600 dark:text-slate-500
+           bg-slate-50 dark:bg-slate-900/50
+           border border-slate-100 dark:border-slate-800/60
+           first:rounded-l-lg last:rounded-r-lg;
+  }
+  .report-table td {
+    @apply py-3 px-4 text-[13px] font-medium text-slate-700 dark:text-slate-300
+           border border-slate-100 dark:border-slate-800/60 align-top;
+  }
+
+  /* ── Citation Badge ─────────────────────────────────────────────────────── */
+  .citation {
+    @apply inline-flex items-center justify-center text-[9px] font-bold
+           text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30
+           border border-blue-200 dark:border-blue-800/40 rounded-full
+           w-4 h-4 ml-0.5 cursor-pointer
+           transition-all duration-150 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:scale-110;
+  }
+
+  /* ── Timeline ────────────────────────────────────────────────────────────── */
+  .timeline-track { @apply absolute left-0 top-2 bottom-0 w-px bg-slate-200 dark:bg-slate-800; }
+  .timeline-dot {
+    @apply absolute left-0 -translate-x-1/2 w-2 h-2 rounded-full
+           bg-blue-600 dark:bg-blue-500 ring-4 ring-white dark:ring-[#0f1623] mt-2;
+  }
+
+  /* ── Tag Pills ───────────────────────────────────────────────────────────── */
+  .report-tag {
+    /* CONTRAST FIX: was text-slate-700 + bg-slate-100 → ensured dark enough */
+    @apply inline-flex items-center gap-1 text-[12px] font-medium text-slate-700 dark:text-slate-300
+           bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60
+           rounded-full px-3 py-1;
+  }
+
+  /* ── Status Badges ──────────────────────────────────────────────────────── */
+  .badge-well-sourced {
+    @apply inline-flex items-center gap-1.5 text-[11px] font-semibold
+           text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20
+           border border-emerald-300 dark:border-emerald-800/30 rounded-full px-3 py-1;
+  }
+  .badge-limited {
+    @apply inline-flex items-center gap-1.5 text-[11px] font-semibold
+           text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20
+           border border-amber-300 dark:border-amber-800/30 rounded-full px-3 py-1;
+  }
+
+  /* ── Action Bar ─────────────────────────────────────────────────────────── */
+  .action-bar {
+    @apply sticky top-0 z-30 bg-white/95 dark:bg-[#0f1623]/95
+           border-b border-slate-200 dark:border-slate-800/60 backdrop-blur-md;
+  }
+
+  /* ── Net Worth / Education Cards ─────────────────────────────────────────── */
+  .networth-card {
+    @apply bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-xl p-5;
+  }
+  .edu-card {
+    @apply flex gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50;
+  }
+
+  /* ── News Card ───────────────────────────────────────────────────────────── */
+  .news-card {
+    @apply flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30
+           border border-slate-150 dark:border-slate-800/50
+           hover:border-slate-300 dark:hover:border-slate-700 transition-colors duration-150;
+  }
+
+  /* ── Reference Item ─────────────────────────────────────────────────────── */
+  .ref-item {
+    @apply flex gap-3 py-3 border-b border-slate-100 dark:border-slate-800/60 last:border-b-0;
+  }
+
+  /* ── Sidebar titles ─────────────────────────────────────────────────────── */
+  /* CONTRAST FIX: text-slate-400 → text-slate-500 */
+  .sidebar-section-title {
+    @apply text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-500 px-4 pt-5 pb-2;
+  }
+
+  /* ── Landing page full-height shell ────────────────────────────────────── */
+  .landing-shell {
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r
+           from-blue-600 via-indigo-500 to-violet-600
+           dark:from-blue-400 dark:via-indigo-300 dark:to-violet-400;
+  }
+  .font-outfit { font-family: 'Outfit', sans-serif; }
+  .border-slate-150 { border-color: #edf0f4; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes sectionReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.report-section { animation: sectionReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.report-section:nth-child(1)  { animation-delay: 0.03s; }
+.report-section:nth-child(2)  { animation-delay: 0.06s; }
+.report-section:nth-child(3)  { animation-delay: 0.09s; }
+.report-section:nth-child(4)  { animation-delay: 0.12s; }
+.report-section:nth-child(5)  { animation-delay: 0.15s; }
+.report-section:nth-child(6)  { animation-delay: 0.18s; }
+.report-section:nth-child(7)  { animation-delay: 0.21s; }
+.report-section:nth-child(8)  { animation-delay: 0.24s; }
+.report-section:nth-child(9)  { animation-delay: 0.27s; }
+.report-section:nth-child(10) { animation-delay: 0.30s; }
+.report-section:nth-child(11) { animation-delay: 0.33s; }
+.report-section:nth-child(12) { animation-delay: 0.36s; }
+
+@keyframes skeletonPulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-pulse {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.4s infinite linear;
+}
+.dark .skeleton-pulse {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.4s infinite linear;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PRINT / PDF
+   All dark-mode overrides are handled in JS (exportToPdf removes .dark class).
+   This CSS handles layout + content visibility for print.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  /* Reset layout so full content is visible */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Force light colors for everything */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide UI chrome */
+  .app-header,
+  .app-sidebar,
+  .app-sidebar-mobile,
+  .app-sidebar-overlay,
+  .action-bar,
+  .no-print { display: none !important; }
+
+  /* Fix layout for print */
+  .app-body { display: block !important; overflow: visible !important; }
+  .app-content { overflow: visible !important; width: 100% !important; }
+  .app-shell { height: auto !important; overflow: visible !important; display: block !important; }
+
+  /* Report document */
+  .report-document {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: white !important;
+    width: 100% !important;
+  }
+
+  /* Sections */
+  .report-section {
+    border-bottom: 1px solid #e5e7eb !important;
+    animation: none !important;
+    break-inside: avoid;
+    padding: 16pt 20pt !important;
+    background: white !important;
+  }
+
+  /* Table */
+  .report-table th {
+    background: #f9fafb !important;
+    color: #374151 !important;
+    border-color: #e5e7eb !important;
+  }
+  .report-table td {
+    color: #1f2937 !important;
+    border-color: #e5e7eb !important;
+    background: white !important;
+  }
+
+  /* Section labels */
+  .report-section-label-text { color: #6b7280 !important; }
+  .report-section-label-line { background: #e5e7eb !important; }
+
+  /* Timeline */
+  .timeline-track { background: #d1d5db !important; }
+  .timeline-dot { background: #2563eb !important; ring-color: white !important; }
+
+  /* Citations */
+  .citation {
+    border: 1px solid #2563eb !important;
+    color: #2563eb !important;
+    background: #eff6ff !important;
+  }
+
+  /* Cards */
+  .networth-card, .edu-card, .news-card {
+    background: #f9fafb !important;
+    border-color: #e5e7eb !important;
+  }
+
+  /* Tags and badges */
+  .report-tag { background: #f1f5f9 !important; color: #374151 !important; border-color: #e2e8f0 !important; }
+  .badge-well-sourced { background: #f0fdf4 !important; color: #166534 !important; border-color: #bbf7d0 !important; }
+  .badge-limited { background: #fffbeb !important; color: #92400e !important; border-color: #fde68a !important; }
+
+  /* Links */
+  a { color: #2563eb !important; text-decoration: underline !important; }
+
+  /* Page break control */
+  h1, h2, h3 { page-break-after: avoid; }
+  .report-section { page-break-inside: avoid; }
+
+  @page {
+    margin: 1.5cm 2cm;
+    size: A4 portrait;
+  }
+}
