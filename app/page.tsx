@@ -132,13 +132,6 @@ export default function LandingPage() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-950/30 mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-          <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest">
-            Powered by Gemini AI
-          </span>
-        </div>
 
         {/* Headline */}
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] font-outfit mb-6">
@@ -212,60 +205,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Fallback Chain Visual ─────────────────────────────────────────── */}
-      <section className="border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-[#080b10]">
-        <div className="max-w-6xl mx-auto px-6 py-20">
-          <div className="text-center mb-12">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-blue-600 dark:text-blue-500 mb-3">Resilience Architecture</p>
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white font-outfit tracking-tight">
-              Never fails because one key is busy
-            </h2>
-            <p className="mt-3 text-slate-600 dark:text-slate-400 text-sm max-w-lg mx-auto">
-              With 4 accounts × 4 models, the system makes up to 16 attempts before showing any error to the user.
-            </p>
-          </div>
-
-          <div className="max-w-3xl mx-auto">
-            {[
-              { model: "Gemini 2.5 Flash", timeout: "90s", badge: "Primary", color: "blue" },
-              { model: "Gemini 2.0 Flash", timeout: "60s", badge: "Fallback 1", color: "indigo" },
-              { model: "Gemini 2.0 Flash Lite", timeout: "45s", badge: "Fallback 2", color: "violet" },
-              { model: "Gemini 1.5 Flash", timeout: "60s", badge: "Fallback 3", color: "purple" },
-            ].map((row, i) => (
-              <div key={row.model} className="flex items-center gap-4 mb-3">
-                {/* Step number */}
-                <div className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[11px] font-bold text-slate-500 dark:text-slate-400 flex-shrink-0">
-                  {i + 1}
-                </div>
-                {/* Model row */}
-                <div className="flex-1 flex items-center justify-between px-5 py-3.5 rounded-xl bg-white dark:bg-[#0c1018] border border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{row.model}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      row.badge === "Primary"
-                        ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
-                    }`}>
-                      {row.badge}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-right">
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">{row.timeout} timeout</span>
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">× 4 keys</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <div className="mt-5 flex items-center gap-3 px-5 py-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40">
-              <span className="text-emerald-600 dark:text-emerald-400"><CheckIcon /></span>
-              <span className="text-[13px] font-semibold text-emerald-700 dark:text-emerald-400">
-                If all models succeed → profile delivered. If all fail → single clean error message shown.
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── CTA Banner ───────────────────────────────────────────────────── */}
       <section className="border-t border-slate-100 dark:border-slate-800">

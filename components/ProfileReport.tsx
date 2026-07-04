@@ -482,17 +482,23 @@ ${profile.biography || "Not publicly available"}
                     <td key={i}>
                       {isEmpty(val as string) ? (
                         <span className="text-slate-350 dark:text-slate-600 italic text-[12px]">—</span>
-                      ) : i === 6 && !isEmpty(val as string) ? (
-                        <a
-                          href={val as string}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-                        >
-                          {(val as string).replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
-                          {Icons.externalLink}
-                        </a>
-                      ) : val}
+                      ) : i === 6 && !isEmpty(val as string) ? (() => {
+                          // Ensure URL always has a protocol prefix so it
+                          // doesn't route as a relative path (e.g. www.x.com → /www.x.com)
+                          const raw = val as string;
+                          const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+                          return (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                            >
+                              {href.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
+                              {Icons.externalLink}
+                            </a>
+                          );
+                        })() : val}
                     </td>
                   ))}
                 </tr>
@@ -651,9 +657,6 @@ ${profile.biography || "Not publicly available"}
                   key={idx}
                   className="flex gap-4 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 border border-slate-150 dark:border-slate-800/50 hover:border-blue-200 dark:hover:border-blue-900/50 transition-colors"
                 >
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-0.5">
-                    {idx + 1}
-                  </div>
                   <div className="flex-1">
                     <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
                       {item.title}
