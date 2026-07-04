@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import type { Profile, Source } from "@/lib/schema";
@@ -359,7 +359,7 @@ ${profile.biography || "Not publicly available"}
   return (
     <div className="space-y-4 animate-fade-in-up">
 
-      {/* â”€â”€ Sticky Action Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Sticky Action Bar ──────────────────────────────────────────────── */}
       <div className="action-bar rounded-xl no-print">
         <div className="px-5 py-2.5 flex items-center justify-between gap-4 flex-wrap">
 
@@ -426,7 +426,7 @@ ${profile.biography || "Not publicly available"}
         </div>
 
         {/* â•â• HERO: Image + Executive Summary â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <div className="report-section">
+        <div className="report-section print-hero">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Profile photo */}
             <div className="flex-shrink-0">
@@ -461,7 +461,7 @@ ${profile.biography || "Not publicly available"}
         </div>
 
         {/* â•â• BASIC DETAILS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <div className="report-section">
+        <div className="report-section print-details">
           <DocSectionHeader icon={Icons.list} label="Basic Details" />
           <div className="overflow-x-auto mt-3">
             <table className="report-table">
@@ -523,7 +523,7 @@ ${profile.biography || "Not publicly available"}
 
         {/* â•â• BIOGRAPHY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {!isEmpty(profile.biography) && (
-          <div className="report-section">
+          <div className="report-section print-bio">
             <DocSectionHeader icon={Icons.book} label="Biography / Summary" />
             <p className="text-[13px] text-slate-700 dark:text-slate-300 leading-[1.9] mt-2 whitespace-pre-line">
               {profile.biography}
@@ -532,7 +532,7 @@ ${profile.biography || "Not publicly available"}
         )}
 
         {/* â•â• CAREER + EDUCATION (2-col) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <div className="report-section grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="report-section print-career-edu grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* Career Timeline */}
           <div>
@@ -583,7 +583,7 @@ ${profile.biography || "Not publicly available"}
 
         {/* â•â• SKILLS + INTERESTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {((profile.skills && profile.skills.length > 0) || (profile.interests && profile.interests.length > 0)) && (
-          <div className="report-section grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="report-section print-skills grid grid-cols-1 md:grid-cols-2 gap-8">
             {profile.skills && profile.skills.length > 0 && (
               <div>
                 <DocSectionHeader icon={Icons.zap} label="Skills" />
@@ -717,7 +717,7 @@ ${profile.biography || "Not publicly available"}
         )}
 
         {/* â•â• BOTTOM 3-COL: Net Worth | Recent Activities | References â•â•â•â• */}
-        <div className="report-section grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="report-section print-bottom grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* Net Worth */}
           <div>

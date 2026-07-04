@@ -282,132 +282,124 @@
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @media print {
-  /* PAGE: A4, tightest margins */
-  @page { margin: 0.6cm 1cm; size: A4 portrait; }
+  /* A4, ultra-tight margins */
+  @page { margin: 0.5cm 0.9cm; size: A4 portrait; }
 
-  /* Base reset */
   html, body {
     height: auto !important; overflow: visible !important;
     background: #fff !important; color: #111827 !important;
-    font-size: 7pt !important; line-height: 1.3 !important;
+    font-size: 7pt !important; line-height: 1.28 !important;
     font-family: 'Inter', sans-serif;
   }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  /* Hide EVERYTHING that is not the report */
+  /* Hide everything that is not the report */
   .app-header, .app-sidebar, .app-sidebar-mobile, .app-sidebar-overlay,
-  .action-bar, .no-print,
-  [role="alert"], .fixed,
-  button { display: none !important; }
+  .action-bar, .no-print, [role="alert"], .fixed, button { display: none !important; }
 
-  /* Layout */
+  /* Layout reset */
   .app-body    { display: block !important; overflow: visible !important; }
   .app-content { overflow: visible !important; width: 100% !important; padding: 0 !important; }
   .app-shell   { height: auto !important; overflow: visible !important; display: block !important; }
-  .space-y-4   { display: block !important; }
 
-  /* Report wrapper */
+  /* Report document wrapper */
   .report-document {
     border: 1px solid #d1d5db !important; box-shadow: none !important;
     border-radius: 2px !important; background: #fff !important; width: 100% !important;
   }
 
-  /* TITLE BLOCK */
-  .report-document > div:first-child {
+  /* ---- TITLE ------------------------------------------------------------ */
+  .print-title {
     border-bottom: 2px solid #2563eb !important; text-align: center !important;
-    padding: 5pt 12pt 4pt !important; background: #fff !important;
+    padding: 4pt 10pt 3pt !important; background: #fff !important; margin: 0 !important;
   }
-  .report-document > div:first-child h1 { font-size: 12pt !important; letter-spacing: 0.1em !important; margin: 0 !important; }
-  .report-document > div:first-child p  { font-size: 6.5pt !important; margin: 1pt 0 0 !important; }
+  .print-title h1 { font-size: 11pt !important; letter-spacing: 0.1em !important; margin: 0 !important; line-height: 1.2 !important; }
+  .print-title p  { font-size: 6pt !important; margin: 1pt 0 0 !important; }
 
-  /* ALL SECTIONS: zero gap */
+  /* ---- ALL SECTIONS: zero gap, zero margin -------------------------------- */
   .report-section {
     border-bottom: 1px solid #e5e7eb !important; animation: none !important;
-    padding: 4pt 12pt !important; background: #fff !important;
-    break-inside: avoid; page-break-inside: avoid;
-    margin: 0 !important;
+    padding: 4pt 10pt !important; background: #fff !important;
+    margin: 0 !important; break-inside: avoid; page-break-inside: avoid;
   }
 
-  /* Remove ALL margin/padding utilities */
-  .mt-1,.mt-2,.mt-3,.mt-4,.mt-5,.mt-6,.mb-1,.mb-2,.mb-3,.mb-4,.mb-5,
-  .pt-4,.pt-5,.pb-4,.pb-5,.py-3,.py-4,.py-5 { margin: 0 !important; padding: 0 !important; }
+  /* Kill ALL Tailwind spacing utilities */
+  * { margin-top: 0 !important; margin-bottom: 0 !important; }
+  .report-section * { margin-top: 0 !important; margin-bottom: 0 !important; }
   .gap-1,.gap-2,.gap-3,.gap-4,.gap-5,.gap-6,.gap-7,.gap-8 { gap: 3pt !important; }
-  .space-y-5>*+*,.space-y-4>*+*,.space-y-3>*+*,.space-y-2>*+*,.space-y-1>*+*,
-  .space-y-2\.5>*+*,.space-y-1\.5>*+* { margin-top: 2pt !important; }
-  .p-3,.p-4,.px-3,.px-4,.px-5,.py-1,.py-2 { padding: 2pt 4pt !important; }
+  .p-3,.p-4,.px-3,.px-4,.px-5,.py-1,.py-2,.py-3,.py-4,.py-5 { padding: 2pt 3pt !important; }
 
-  /* HERO: image + summary side by side */
-  .report-section > div.flex { flex-direction: row !important; gap: 8pt !important; align-items: flex-start !important; }
-  .report-section img,
-  .report-section [class*="w-40"], .report-section [class*="w-48"] {
-    width: 62pt !important; height: 62pt !important;
-    min-width: 62pt !important; max-width: 62pt !important;
-    border-radius: 4pt !important; object-fit: cover !important; object-position: top !important;
-    flex-shrink: 0 !important;
+  /* ---- HERO: image left, summary right ----------------------------------- */
+  .print-hero > div { display: flex !important; flex-direction: row !important; gap: 8pt !important; align-items: flex-start !important; }
+  .print-hero img {
+    width: 58pt !important; height: 58pt !important;
+    min-width: 58pt !important; max-width: 58pt !important;
+    border-radius: 4pt !important; object-fit: cover !important; object-position: top !important; flex-shrink: 0 !important;
+  }
+  /* Initials avatar fallback */
+  .print-hero [class*="rounded"] { width: 58pt !important; height: 58pt !important; min-width: 58pt !important; }
+
+  /* ---- SECTION HEADER (blue icon box) ------------------------------------ */
+  [class*="bg-blue-600"],[class*="bg-blue-700"] { background-color: #2563eb !important; color: #fff !important; }
+  .w-5.h-5 { width: 9pt !important; height: 9pt !important; min-width: 9pt !important; border-radius: 2pt !important; }
+
+  /* ---- DETAILS table ----------------------------------------------------- */
+  .print-details .overflow-x-auto { margin: 0 !important; }
+  .report-table { width: 100% !important; font-size: 6.5pt !important; border-collapse: collapse !important; table-layout: fixed !important; }
+  .report-table th { background: #f3f4f6 !important; color: #374151 !important; border: 1px solid #d1d5db !important; font-size: 6pt !important; padding: 2pt 3pt !important; }
+  .report-table td { color: #1f2937 !important; border: 1px solid #e5e7eb !important; background: #fff !important; padding: 2pt 3pt !important; font-size: 6.5pt !important; }
+
+  /* ---- BIOGRAPHY: limit to 8 lines -------------------------------------- */
+  .print-bio p {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 9 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 7pt !important;
+    line-height: 1.3 !important;
   }
 
-  /* Section header (blue icon box) */
-  [class*="bg-blue-600"],[class*="bg-blue-700"] { background-color: #2563eb !important; color: #fff !important; }
-  .report-section .w-5.h-5 { width: 10pt !important; height: 10pt !important; border-radius: 2pt !important; }
+  /* ---- CAREER + EDUCATION 2-col ----------------------------------------- */
+  .print-career-edu { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8pt !important; }
+  .print-career-edu ul li:nth-child(n+9) { display: none !important; }
 
-  /* 2-col grids */
-  .report-section.grid { display: grid !important; }
-  .report-section.grid-cols-1.lg\:grid-cols-2,
-  .report-section.md\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; gap: 10pt !important; }
+  /* ---- SKILLS + INTERESTS 2-col ----------------------------------------- */
+  .print-skills { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8pt !important; }
+  .print-skills ul li:nth-child(n+5) { display: none !important; }
 
-  /* 3-col bottom row */
-  .report-section.md\:grid-cols-3 { grid-template-columns: 1fr 1fr 1fr !important; gap: 8pt !important; }
+  /* ---- BOTTOM 3-col ----------------------------------------------------- */
+  .print-bottom { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 6pt !important; }
+  .print-bottom ul li:nth-child(n+5) { display: none !important; }
 
-  /* Interests inner grid */
-  .grid.grid-cols-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 1pt 6pt !important; }
+  /* ---- Achievements, Awards: max 3 items --------------------------------- */
+  .report-section > div > div.flex:nth-child(n+4) { display: none !important; }
 
-  /* Tables */
-  .report-table { width: 100% !important; font-size: 6.5pt !important; border-collapse: collapse !important; }
-  .report-table th { background: #f3f4f6 !important; color: #374151 !important; border: 1px solid #d1d5db !important; font-size: 6pt !important; padding: 2pt 4pt !important; }
-  .report-table td { color: #1f2937 !important; border: 1px solid #e5e7eb !important; background: #fff !important; padding: 2pt 4pt !important; font-size: 6.5pt !important; }
+  /* ---- Global text sizes ------------------------------------------------- */
+  p, li, td, th, span, div { font-size: 7pt !important; line-height: 1.3 !important; }
+  ul, ol { padding-left: 0 !important; }
+  li { list-style: none !important; }
 
-  /* All text sizes */
-  p, span, li, td, th, div { font-size: 7pt !important; line-height: 1.32 !important; }
-  h1 { font-size: 12pt !important; }
-  h2, h3 { font-size: 8pt !important; }
+  /* Net worth big number */
+  .font-outfit.font-black { font-size: 10pt !important; }
 
-  /* Lists */
-  ul, ol { margin: 1pt 0 !important; padding: 0 !important; }
-  li { margin: 1pt 0 !important; }
-
-  /* Net worth number */
-  .font-outfit.font-black { font-size: 11pt !important; }
-
-  /* CONTENT LIMITS — show only top priority items
-     Career: max 8, Education: max 3, Achievements/Awards/Activities: max 3, Sources: max 8 */
-  .report-section ul > li:nth-child(n+9)  { display: none !important; } /* career */
-  .report-section ul > li:nth-child(n+4)  { display: none !important; } /* edu/awards/achievements/activities */
-  /* Sources list: max 8 */
-  .report-section > div > ul > li:nth-child(n+9) { display: none !important; }
-
-  /* Hide metric pills, badges, copy buttons, tags in print */
-  .report-section .flex.flex-wrap.gap-2 > *,
-  .badge-well-sourced, .badge-limited { display: none !important; }
-  .report-tag { background:#f1f5f9!important;color:#374151!important;border:1px solid #e2e8f0!important;font-size:6.5pt!important;padding:1pt 3pt!important; }
+  /* Metric pills, badges, social links: hide */
+  .badge-well-sourced, .badge-limited, .rounded-full { display: none !important; }
+  .report-tag { background:#f1f5f9!important;color:#374151!important;border:1px solid #e2e8f0!important;font-size:6pt!important;padding:0 2pt!important;margin:0 1pt!important; }
 
   /* Citations */
-  .citation { border:1px solid #2563eb!important;color:#2563eb!important;background:#eff6ff!important;font-size:5.5pt!important;padding:0 2pt!important; }
+  .citation { border:1px solid #2563eb!important;color:#2563eb!important;background:#eff6ff!important;font-size:5pt!important;padding:0 2pt!important;vertical-align:super!important; }
 
   /* Links */
-  a { color:#2563eb!important;text-decoration:underline!important; }
-
-  /* PAGE BREAK: Page 1 = title+hero+details+bio, Page 2 = career onwards */
-  .report-section.grid.grid-cols-1.lg\:grid-cols-2 {
-    page-break-before: always !important;
-    break-before: page !important;
-  }
+  a { color:#2563eb!important; text-decoration:underline!important; }
+  .line-clamp-1 { overflow:hidden!important; white-space:nowrap!important; text-overflow:ellipsis!important; }
 
   /* Footer */
   .report-document > div:last-child {
-    background:#f9fafb!important;border-top:1px solid #e5e7eb!important;
-    text-align:center!important;font-size:6pt!important;color:#9ca3af!important;padding:3pt 12pt!important;
+    background:#f9fafb!important; border-top:1px solid #e5e7eb!important;
+    text-align:center!important; font-size:5.5pt!important; color:#9ca3af!important; padding:3pt 10pt!important;
   }
 
-  /* No orphan headers */
-  h1,h2,h3 { page-break-after:avoid; orphans:3; widows:3; }
+  /* NO forced page breaks - let content flow naturally into 2 pages */
+  .report-section { page-break-before: auto !important; break-before: auto !important; }
+  h1, h2, h3 { page-break-after: avoid; }
 }
