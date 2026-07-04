@@ -1,185 +1,205 @@
-# Aura — AI Research Intelligence Platform
+# Aura — AI Intelligence Research Platform
 
-> Generate citation-backed executive intelligence profiles on any public figure — real or fictional — powered by Gemini with multi-key rotation, automatic model fallback, and entity-accurate image resolution.
+> Enter a name. Get a complete, citation-backed intelligence report in seconds.
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square)](https://nextjs.org)
-[![Gemini](https://img.shields.io/badge/Google-Gemini-4285F4?style=flat-square)](https://ai.google.dev)
-[![Tavily](https://img.shields.io/badge/Tavily-Search-orange?style=flat-square)](https://tavily.com)
-
----
-
-## Overview
-
-Aura takes a person's **name + context** and produces a structured, citation-backed intelligence dossier covering biography, career timeline, education, achievements, net worth, and recent activities — plus an accurately matched portrait photo.
-
-**Key differentiators:**
-- 🔁 **16-attempt AI fallback chain** (4 models × 4 API keys) — zero single points of failure
-- 🔍 **Entity-accurate image pipeline** — Gemini Vision verifies every image before display
-- 🎌 **Fictional character support** — anime, manga, and game characters via AniList
-- 📱 **Mobile-first layout** — vertical stack (search → profile → recents), no hamburger
-- 🖨️ **PDF export** — A4-optimised print CSS with full citations
+[![Live Demo](https://img.shields.io/badge/Live-aura--azure--theta.vercel.app-blue?style=flat-square)](https://aura-azure-theta.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-Shivasaiyadav08%2FAura-181717?style=flat-square&logo=github)](https://github.com/Shivasaiyadav08/Aura)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black?style=flat-square)](https://nextjs.org)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 ---
 
-## Architecture
+## What it does
+
+Aura researches any public figure — real person or fictional character — and generates a structured intelligence profile with:
+
+- Executive summary · biography · career timeline · education
+- Net worth · achievements · awards · recent activities
+- Citation-backed sources for every claim
+- Accurately matched portrait image (verified by Gemini Vision)
+- One-click PDF export
+
+---
+
+## How to use
+
+1. **Open the app** → [aura-azure-theta.vercel.app/research](https://aura-azure-theta.vercel.app/research)
+2. **Enter a name** — e.g. `Satya Nadella`
+3. **Enter context** — e.g. `CEO of Microsoft` (helps disambiguate common names)
+4. Click **Build Intelligence Dossier**
+5. Wait 10–30 seconds for the report to generate
+6. Browse the report, click source citations, or click **Export PDF**
+
+**Tips:**
+- Use the **Recent** panel (desktop sidebar / mobile bottom strip) to revisit past searches
+- ⭐ **Favourite** a search to pin it to the top
+- Works for anime/manga characters too — try `Monkey D. Luffy` + `One Piece`
+
+---
+
+## Full System Flow
 
 ```
-Browser
-  └─ /research (page.tsx)
-       ├─ [Mobile] Search Form (top, collapsible after submit)
-       ├─ [Mobile] Profile Output (middle, scrollable)
-       ├─ [Mobile] Recent Profiles strip (bottom, expandable)
-       └─ [Desktop] Fixed sidebar (320 px) + scrollable content
-            │
-            ▼  POST /api/profile
-       route.ts
-         ├─ 1. Rate limit check       (lib/rate-limiter.ts)
-         ├─ 2. Cache check            (lib/cache.ts)
-         ├─ 3. Tavily web search      (lib/search.ts)
-         ├─ 4. AI profile generation  (lib/ai/fallback.ts)
-         ├─ 5. Schema validation      (lib/ai/validator.ts)
-         ├─ 6. Image resolution       (lib/image-resolver.ts)
-         └─ 7. Cache & respond        (lib/cache.ts)
+User enters: "Satya Nadella" + "CEO of Microsoft"
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────┐
+│  1. RATE LIMIT CHECK                                        │
+│     lib/rate-limiter.ts  — per-IP throttling                │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  2. CACHE CHECK                                             │
+│     lib/cache.ts  — Redis (or in-memory fallback)           │
+│     Cache hit → return immediately (~50 ms)                 │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Cache miss
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  3. PARALLEL WEB SEARCH                                     │
+│     lib/search.ts  — Tavily API                             │
+│     3 concurrent queries:                                   │
+│       • "Satya Nadella CEO Microsoft"                       │
+│       • "Satya Nadella Microsoft biography career"          │
+│       • "Satya Nadella net worth achievements 2024"         │
+│     Returns 15 ranked, deduplicated sources with content    │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  4. AI PROFILE GENERATION                                   │
+│     lib/ai/fallback.ts  — 16-attempt fallback chain         │
+│                                                             │
+│     Model 1: gemini-2.5-flash  × [key1, key2, key3, key4]  │
+│     Model 2: gemini-2.0-flash  × [key1, key2, key3, key4]  │
+│     Model 3: gemini-2.0-flash-lite × [all keys]            │
+│     Model 4: gemini-1.5-flash  × [all keys]                │
+│                                                             │
+│     Each attempt:                                           │
+│       → Send search results + structured prompt             │
+│       → Parse JSON profile (30+ fields)                     │
+│       → Validate with Zod schema                            │
+│       → On failure: try next key, then next model           │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  5. IMAGE RESOLUTION  (lib/image-resolver.ts)               │
+│                                                             │
+│  Phase 1 — Extract metadata from Tavily results (free)      │
+│    Wikipedia URL · GitHub username · personal site          │
+│                                                             │
+│  Phase 2 — Build rich query (never name-only)               │
+│    "Satya Nadella CEO Microsoft official portrait"          │
+│                                                             │
+│  Phase 3 — Search 8 providers in parallel                   │
+│    Wikipedia (exact) → Wikipedia (query) → Wikidata P18     │
+│    → GitHub avatar → OG image → DuckDuckGo → AniList        │
+│    → Unavatar (last resort)                                 │
+│                                                             │
+│  Phase 4 — Identity confidence scoring                      │
+│    source authority + name in URL + company match           │
+│                                                             │
+│  Phase 5 — Gemini Vision verification                       │
+│    "Does this image show Satya Nadella, CEO of Microsoft?"  │
+│    Accept only if confidence ≥ 80%                          │
+│    Reject → try next candidate                              │
+│    All rejected → return null (show initials placeholder)   │
+│                                                             │
+│  Phase 6 — Cache URL for 30 days (compound key)             │
+│    img:v4:satya-nadella:ceo-of-microsoft:microsoft          │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  6. CACHE & RESPOND                                         │
+│     Cache full profile · Return JSON to browser             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+                    Profile rendered in UI
 ```
 
 ---
 
-## AI Resilience: 16-Attempt Fallback Chain
+## Technologies & Purpose
 
-With 4+ Gemini accounts, every request has **16 total attempts** before failing:
+| Technology | Role | Why |
+|-----------|------|-----|
+| **Next.js 14** | Full-stack framework | App Router, API routes, SSR/static hybrid, one deploy |
+| **TypeScript** | Language | Type safety across the entire stack |
+| **Tailwind CSS** | Styling | Utility-first, design tokens, dark mode |
+| **Google Gemini API** | AI profile generation + Vision verification | Best-in-class reasoning + multimodal (image verification) |
+| **Tavily Search API** | Web research | Real-time, AI-optimised search with content extraction |
+| **Zod** | Schema validation | Runtime type checking of AI-generated JSON |
+| **Redis (Upstash)** | Persistent cache | Sub-100ms repeat responses; falls back to in-memory |
+| **AniList GraphQL** | Anime character images | Official licensed artwork for fictional characters |
+| **Wikipedia API** | Person images + article data | Free, authoritative, global coverage |
+| **Wikidata API** | P18 portrait property | Curated person photos, linked to knowledge graph |
+| **DuckDuckGo API** | Fallback images | Instant Answer images for public figures |
+| **Vercel** | Deployment | Edge-optimised, auto-deploy from GitHub, free tier |
+
+### AI Resilience — 16-Attempt Fallback
 
 ```
-Model                     Keys tried per model     Total
-─────────────────────────────────────────────────────────
-gemini-2.5-flash          key1 → key2 → key3 → key4    4
-gemini-2.5-flash-lite     key1 → key2 → key3 → key4    4
-gemini-2.0-flash          key1 → key2 → key3 → key4    4
-gemini-1.5-flash          key1 → key2 → key3 → key4    4
-─────────────────────────────────────────────────────────
-Total                                                   16
+gemini-2.5-flash     × 4 keys  =  4 attempts   (primary)
+gemini-2.0-flash     × 4 keys  =  4 attempts   (fallback 1)
+gemini-2.0-flash-lite × 4 keys =  4 attempts   (fallback 2)
+gemini-1.5-flash     × 4 keys  =  4 attempts   (fallback 3)
+──────────────────────────────────────────────────────
+Total: 16 attempts before any error is shown
 ```
 
-**Key cooldown states:**
-
-| Status | Trigger | Cooldown |
-|--------|---------|----------|
-| `quota-exceeded` | HTTP 429 / Resource Exhausted | 2 minutes |
-| `cooling` | HTTP 500 / 503 / overloaded | 45 seconds |
-| `rate-limited` | Other transient errors | 60 seconds |
-| `available` | Default / after cooldown | — |
-
-Keys restore automatically. Users never see provider names or error codes.
+Rate-limited keys go on automatic cooldown and are skipped. They restore themselves — no manual intervention needed.
 
 ---
 
-## Image Resolution Pipeline
-
-The `ImageSearchService` (`lib/image-resolver.ts`) is the core innovation for accurate image matching.
-
-### The Problem with Name-Only Search
-
-Searching `"Vinh Giang"` returns a Vietnamese movie poster.  
-Searching `"John Smith"` returns any of thousands of people.
-
-### Solution: Entity-Accurate 6-Phase Pipeline
+## Project Structure
 
 ```
-Phase 1 ─ Extract Metadata from Tavily Sources (free — no extra API calls)
-           │  Parses already-fetched search results for:
-           │  • Wikipedia URL    • GitHub username
-           │  • LinkedIn URL     • Personal website
-           │  • Company domain
-           │
-Phase 2 ─ Build Rich Disambiguating Query
-           │  "Vinh Giang"  →  "Vinh Giang communication coach 52Kards official portrait"
-           │  "Luffy"       →  "Monkey D. Luffy One Piece official artwork"
-           │
-Phase 3 ─ Modular Provider Pipeline (parallel execution)
-           │
-           │  Real People               Fictional Characters
-           │  ─────────────             ─────────────────────
-           │  1. Wikipedia (exact URL)  1. AniList GraphQL API
-           │  2. Wikipedia (query)      2. Wikipedia (query)
-           │  3. Wikidata P18 portrait  3. DuckDuckGo
-           │  4. GitHub avatar
-           │  5. OG image (website)
-           │  6. DuckDuckGo
-           │  7. Unavatar (last resort)
-           │
-Phase 4 ─ Multi-Factor Identity Confidence Scoring
-           │  base_score (source authority)
-           │  + name tokens in URL      (+10 full match, +5 partial)
-           │  + company name in URL     (+8)
-           │  + Wikipedia/Wikidata      (+5)
-           │  + personal site OG image  (+6)
-           │  + GitHub avatar           (+4)
-           │  + AniList official art    (+10)
-           │  = identityScore (0–100)
-           │  Candidates sorted descending
-           │
-Phase 5 ─ Gemini Vision Verification
-           │  Sends image to gemini-2.0-flash with context-rich prompt:
-           │  "Does this image show Satya Nadella, CEO of Microsoft?"
-           │  → VERDICT: YES/NO  CONFIDENCE: 0-100
-           │  Rejects if confidence < 80%
-           │  Graceful degradation: if Gemini unavailable, trusts score ≥ 90
-           │
-Phase 6 ─ Cache with 30-Day TTL (compound key)
-           Cache key: img:v4:satya-nadella:ceo-of-microsoft:microsoft
-           (NOT just: img:satya-nadella)
-           One profile's failed lookup never affects any other profile.
+app/
+  page.tsx                  Landing page
+  research/page.tsx         Main research interface
+  layout.tsx                HTML shell, fonts, theme providers
+  globals.css               Design system, animations, print CSS
+  api/
+    profile/route.ts        POST /api/profile  (maxDuration = 60s)
+    health/route.ts         GET  /api/health   (system status)
+
+components/
+  ProfileForm.tsx           Search form + autocomplete suggestions
+  ProfileReport.tsx         Report renderer, PDF export, citation links
+  LoadingState.tsx          Animated skeleton + progress indicator
+
+lib/
+  image-resolver.ts         ImageSearchService — full 8-provider pipeline
+  search.ts                 Tavily parallel search (3 concurrent queries)
+  cache.ts                  Redis + in-memory SmartCache with TTL
+  rate-limiter.ts           Per-IP throttling
+  logger.ts                 Request analytics
+  utils.ts                  Shared helpers
+  schema.ts                 Zod profile schema (30+ fields)
+  ai/
+    fallback.ts             16-attempt model × key orchestrator
+    provider.ts             GeminiKeyManager — status tracking, cooldowns
+    models.ts               Model registry + fallback chain
+    validator.ts            AI output validation
+    errors.ts               Typed AI error classes
+
+hooks/
+  useSearchHistory.ts       localStorage search history, favourites, rename
+
+providers/
+  theme.tsx                 Dark / light mode
+  toast.tsx                 Toast notifications
 ```
-
-### Source Confidence Scores
-
-| Source | Base Score | Notes |
-|--------|-----------|-------|
-| Wikipedia (exact URL) | 97 | Article URL from Tavily search results |
-| Wikipedia (rich query) | 93 | Searched via enriched query |
-| Wikidata P18 | 91 | Curated portrait property — very accurate |
-| AniList | 90 | Official character art for anime/manga |
-| GitHub avatar | 89 | Tied to a verified user identity |
-| OG image (website) | 87 | From personal or company website |
-| DuckDuckGo | 80 | Instant Answer image |
-| Unavatar | 60 | Social aggregator — last resort, no verification |
-
-### Example Queries Generated
-
-| Name + Context | Query Used |
-|---------------|-----------|
-| `Satya Nadella` + `CEO of Microsoft` | `Satya Nadella CEO Microsoft CEO of Microsoft official portrait` |
-| `Jensen Huang` + `CEO of NVIDIA` | `Jensen Huang CEO NVIDIA CEO of NVIDIA official portrait` |
-| `Vinh Giang` + `Magician` | `Vinh Giang communication coach 52Kards Magician official portrait` |
-| `Monkey D. Luffy` + `One Piece` | `Monkey D. Luffy One Piece official artwork` |
-| `Naruto Uzumaki` + `Seventh Hokage` | `Naruto Uzumaki Seventh Hokage official artwork` |
-
----
-
-## Public Sources & References
-
-### Profile Generation
-| Source | Purpose | API Key Required |
-|--------|---------|-----------------|
-| **Tavily** | Parallel web search — fetches 15 results from news, Wikipedia, official sites | Yes (`TAVILY_API_KEY`) |
-| **Google Gemini** | AI profile structuring and generation from search results | Yes (`GEMINI_API_KEY`) |
-
-### Image Resolution
-| Source | Purpose | API Key Required |
-|--------|---------|-----------------|
-| **Wikipedia API** | `pageimages` endpoint — official article thumbnails | No |
-| **Wikidata API** | `P18` portrait property — curated person photos | No |
-| **AniList GraphQL** | Anime/manga character official artwork | No |
-| **DuckDuckGo** | Instant Answer images for public figures | No |
-| **GitHub Avatars** | `avatars.githubusercontent.com` — developer profiles | No |
-| **OG images** | Open Graph `og:image` from personal/company websites | No |
-| **Unavatar.io** | Social media avatar aggregator — last resort | No |
-| **Gemini Vision** | Verifies each image before display (`gemini-2.0-flash`) | Reuses Gemini key |
 
 ---
 
 ## Setup
 
-### 1. Clone & Install
+### 1. Clone & install
 
 ```bash
 git clone https://github.com/Shivasaiyadav08/Aura.git
@@ -187,217 +207,148 @@ cd Aura
 npm install
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure environment
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local`:
-
 ```env
-# ── Gemini (required — get free keys at aistudio.google.com) ──────────────────
-GEMINI_API_KEY=AIza...         # primary key (same as KEY_1 is fine)
-GEMINI_API_KEY_1=AIza...       # Google account 1
-GEMINI_API_KEY_2=AIza...       # Google account 2
-GEMINI_API_KEY_3=AIza...       # Google account 3
-GEMINI_API_KEY_4=AIza...       # Google account 4
+# ── Gemini AI (required)
+# Get free keys at: https://aistudio.google.com/app/apikey
+# One key per Google account — 4 keys = 16 total AI attempts
+GEMINI_API_KEY=AIza...
+GEMINI_API_KEY_1=AIza...
+GEMINI_API_KEY_2=AIza...
+GEMINI_API_KEY_3=AIza...
+GEMINI_API_KEY_4=AIza...
 
-# ── Tavily search (required — get free key at tavily.com) ────────────────────
+# ── Tavily Search (required)
+# Get free key at: https://tavily.com  (1,000 searches/month free)
 TAVILY_API_KEY=tvly-...
 
-# ── Cache (optional — falls back to in-memory if omitted) ────────────────────
-REDIS_URL=rediss://...         # Upstash Redis or any Redis with TLS
+# ── Redis Cache (optional)
+# Falls back to in-memory if not set
+# Recommended: https://upstash.com  (free tier available)
+REDIS_URL=rediss://...
 ```
-
-> **Free tiers are sufficient.** Gemini free tier: 15 req/min per key.  
-> Tavily free tier: 1,000 searches/month.
 
 ### 3. Run
 
 ```bash
 npm run dev
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+### 4. Deploy to Vercel
 
----
-
-## Folder Structure
-
+```bash
+# Push to GitHub, then:
+# 1. Import repo at vercel.com/import
+# 2. Add all env vars in Settings → Environment Variables
+# 3. Deploy — no extra config needed
 ```
-app/
-  page.tsx                 Landing page
-  research/
-    page.tsx               Main research interface (mobile + desktop layout)
-  layout.tsx               HTML shell, fonts, providers
-  globals.css              Design system, animations, print CSS
-  api/
-    profile/route.ts       POST — generate profile (maxDuration=60s)
-    health/route.ts        GET  — system status + key states
-
-components/
-  ProfileForm.tsx           Search form with autocomplete + suggestions
-  ProfileReport.tsx         Full report renderer + PDF export
-  LoadingState.tsx          Skeleton + animated progress bar
-
-lib/
-  image-resolver.ts         ImageSearchService — full 6-phase pipeline
-    ├─ extractSourceMetadata()   Phase 1: Parse Tavily results for metadata
-    ├─ buildRichQuery()          Phase 2: Build disambiguating query
-    ├─ ImageProvider (interface) Phase 3: Modular provider contract
-    ├─ WikipediaExactProvider    Provider: Wikipedia via exact URL
-    ├─ WikipediaQueryProvider    Provider: Wikipedia via rich query
-    ├─ WikidataProvider          Provider: Wikidata P18 portrait
-    ├─ GitHubProvider            Provider: GitHub avatar
-    ├─ OgImageProvider           Provider: OG image from website
-    ├─ AniListProvider           Provider: Anime character art
-    ├─ DuckDuckGoProvider        Provider: DDG instant answer
-    ├─ UnavatarProvider          Provider: Social aggregator fallback
-    ├─ computeIdentityScore()    Phase 4: Multi-factor scoring
-    ├─ verifyWithGemini()        Phase 5: Gemini Vision verification
-    └─ resolveProfileImage()     Phase 6: Orchestrator + cache
-
-  ai/
-    provider.ts            GeminiKeyManager (status tracking, rotation)
-    models.ts              Model registry + FALLBACK_CHAIN
-    fallback.ts            Orchestrates model × key attempts
-    validator.ts           Profile schema validation
-    errors.ts              Typed AI error classes
-    retry.ts               Retry with exponential backoff
-  search.ts                Tavily parallel search (3 concurrent queries)
-  prompts.ts               buildProfilePrompt / buildRepairPrompt
-  schema.ts                Zod profile schema (30+ fields)
-  cache.ts                 Redis + in-memory SmartCache
-  image-resolver.ts        ImageSearchService (see above)
-  rate-limiter.ts          Per-IP request throttling
-  logger.ts                Analytics logger
-  utils.ts                 Shared helpers
-
-hooks/
-  useSearchHistory.ts      localStorage search history with favorites
-
-providers/
-  theme.tsx                Dark/light mode provider
-  toast.tsx                Toast notification provider
-```
-
----
-
-## API Reference
-
-### `POST /api/profile`
-
-**Request:**
-```json
-{ "name": "Satya Nadella", "context": "CEO of Microsoft" }
-```
-
-**Success Response:**
-```json
-{
-  "success": true,
-  "profile": {
-    "profileImageUrl": "https://upload.wikimedia.org/...",
-    "executiveSummary": "...",
-    "basicDetails": { "fullName": "Satya Nadella", "currentRole": "CEO", ... },
-    "biography": "...",
-    "careerTimeline": [...],
-    "education": [...],
-    "sources": [{ "id": "1", "title": "...", "url": "...", "snippet": "..." }],
-    "sourceQuality": "Well sourced"
-  },
-  "modelUsed": "gemini-2.5-flash",
-  "latencyMs": 9240,
-  "cacheHit": false
-}
-```
-
-**Error Response (always sanitised — no internal details leaked):**
-```json
-{ "success": false, "error": "We're experiencing unusually high demand. Please try again shortly." }
-```
-
-### `GET /api/health`
-
-Returns key rotation status, environment config, and analytics.
-
----
-
-## Adding a New Image Provider
-
-1. Create a class implementing `ImageProvider` in `lib/image-resolver.ts`:
-
-```typescript
-class MyNewProvider implements ImageProvider {
-  readonly name = "my-provider";
-
-  async fetch(q: ImageSearchQuery): Promise<Pick<ImageCandidate, "url" | "source" | "baseScore"> | null> {
-    // q.personName, q.richQuery, q.pctx, q.metadata, q.isFictional
-    const imgUrl = await myApi.search(q.richQuery);
-    if (!imgUrl) return null;
-    return { url: imgUrl, source: this.name, baseScore: 85 };
-  }
-}
-```
-
-2. Add it to the provider list:
-
-```typescript
-const REAL_PERSON_PROVIDERS: ImageProvider[] = [
-  // ... existing providers ...
-  new MyNewProvider(),   // ← add here
-];
-```
-
-That's it. The pipeline automatically scores, verifies, and caches its output.
-
----
-
-## Performance
-
-| Scenario | Latency |
-|---------|---------|
-| Cache hit (Redis) | ~50 ms |
-| Cache hit (memory) | ~5 ms |
-| First generation (cold) | 12–35 s |
-| Image verification (Gemini Vision) | +3–8 s |
-| All keys rate-limited | Automatic fallback — no error shown |
-
----
-
-## Deployment (Vercel)
-
-1. Push to GitHub
-2. Import in [Vercel dashboard](https://vercel.com/import)
-3. Add all environment variables (`Settings → Environment Variables`)
-4. Deploy — `maxDuration = 60` is already configured for long AI requests
 
 ---
 
 ## Environment Variables
 
 | Variable | Required | Description |
-|----------|----------|-------------|
+|----------|:--------:|-------------|
 | `GEMINI_API_KEY` | ✅ | Primary Gemini key |
-| `GEMINI_API_KEY_1` – `_4` | Recommended | One key per Google account (16-attempt chain) |
-| `TAVILY_API_KEY` | ✅ | Web search API |
-| `REDIS_URL` | Optional | Persistent cache — falls back to in-memory |
+| `GEMINI_API_KEY_1` – `_4` | Recommended | One per Google account — enables 16-attempt chain |
+| `TAVILY_API_KEY` | ✅ | Web search |
+| `REDIS_URL` | Optional | Persistent cache (Upstash recommended) |
 | `NEXT_PUBLIC_APP_URL` | Optional | Absolute URL for metadata |
 
 ---
 
-## Accuracy Design Principles
+## Performance
 
-1. **Never search by name alone** — always include role, company, or franchise
-2. **Multiple sources, not one** — cross-validate across Wikipedia, Wikidata, GitHub, AniList
-3. **Gemini Vision as gate** — pixel-level verification before any image is shown
-4. **No image > wrong image** — if no candidate passes verification, show professional initials
-5. **Independent caching** — compound key ensures one profile never corrupts another
-6. **Fictional character support** — AniList for anime/manga, Wikipedia for others
+| Scenario | Response time |
+|---------|:------------:|
+| Cache hit (Redis) | ~50 ms |
+| Cache hit (in-memory) | ~5 ms |
+| First generation | 10–30 s |
+| + Image resolution | +3–8 s |
+| All keys rate-limited | Automatic fallback, no downtime |
 
 ---
 
-## PDF Export
+## Adding a New Image Provider
 
-Click **Export PDF** in the report action bar. The browser's print dialog opens with A4-optimised CSS — no decorative elements, proper page breaks, full citation preservation.
+The image pipeline is fully modular. To add a new source:
+
+```typescript
+// lib/image-resolver.ts
+
+class MyNewProvider implements ImageProvider {
+  readonly name = "my-source";
+
+  async fetch(q: ImageSearchQuery): Promise<Pick<ImageCandidate, "url" | "source" | "baseScore"> | null> {
+    const url = await myApi.search(q.richQuery);
+    return url ? { url, source: this.name, baseScore: 85 } : null;
+  }
+}
+
+// Register it:
+const REAL_PERSON_PROVIDERS: ImageProvider[] = [
+  ...existingProviders,
+  new MyNewProvider(),  // ← add here
+];
+```
+
+The pipeline handles scoring, Gemini verification, caching, and fallback automatically.
+
+---
+
+## Future Improvements
+
+### 🖼️ Image Accuracy
+| Improvement | Description |
+|------------|-------------|
+| **Google Knowledge Graph API** | Direct entity lookup by name + type → returns the canonical image used in Google Search. Highest possible accuracy. Requires GCP project. |
+| **Getty Images / Shutterstock API** | Professional editorial photos for public figures. Paid but extremely accurate. |
+| **Bing Image Search API** | Supports filtering by `imageType=Photo` and `safeSearch`. Better than DuckDuckGo for less-prominent figures. |
+| **Reverse image search validation** | After finding a candidate, use Google Vision or Bing to reverse-search it — confirm the top result matches the person's name. |
+| **Face detection pre-filter** | Before sending to Gemini Vision, use a face-detection API to ensure the image contains exactly one face. Eliminates group photos and logos cheaply. |
+| **Company LinkedIn scraping (via Proxycurl)** | LinkedIn headshots are authoritative. Proxycurl provides structured LinkedIn data including profile photos. |
+| **Official website structured data** | Parse `schema.org/Person` JSON-LD from personal websites for authoritative images. |
+| **Persistent candidate store** | Store all rejected candidates with their scores in a DB for debugging and manual correction. |
+
+### 🤖 AI Profile Quality
+| Improvement | Description |
+|------------|-------------|
+| **Perplexity API** | Real-time web-search-augmented LLM — better for recent events and less-prominent people. |
+| **Multiple source corroboration** | Cross-check facts across sources before including. Claim only added if ≥ 2 sources agree. |
+| **Structured Wikipedia extraction** | Directly parse Wikipedia infoboxes instead of relying on LLM inference for basic facts. |
+| **Real-time news integration** | Include a "Latest News" section using a news API (NewsAPI, GDELT). |
+| **Confidence intervals per field** | Show per-field confidence ranges in the UI so users know which data is solid vs. inferred. |
+
+### ⚡ Performance & Scale
+| Improvement | Description |
+|------------|-------------|
+| **Streaming responses** | Stream the AI output token-by-token to the client — users see data appearing immediately instead of waiting. |
+| **Background image resolution** | Return the profile immediately, resolve the image asynchronously, push via WebSocket or SSE. |
+| **Vectorised search history** | Use embeddings to find semantically similar past searches and suggest them. |
+| **Rate limit dashboard** | Admin panel showing API key health, usage per key, and cooldown status in real time. |
+
+### 🌐 Coverage
+| Improvement | Description |
+|------------|-------------|
+| **Multi-language profiles** | Search in the subject's native language (Japanese for anime, French for French politicians). |
+| **Company profiles** | Extend the schema to support organisations, not just people. |
+| **Batch research** | Research multiple people at once, e.g. a full executive team. |
+| **Browser extension** | Trigger a profile from any webpage by right-clicking a person's name. |
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
+
+---
+
+<div align="center">
+  Built by <a href="https://github.com/Shivasaiyadav08">Shivasaiyadav08</a> · Powered by Gemini · Tavily · Next.js
+</div>
