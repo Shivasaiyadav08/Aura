@@ -282,206 +282,132 @@
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @media print {
-  /* â”€â”€ Page: A4, tight margins for max content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  @page { margin: 0.8cm 1.2cm; size: A4 portrait; }
+  /* PAGE: A4, tightest margins */
+  @page { margin: 0.6cm 1cm; size: A4 portrait; }
 
+  /* Base reset */
   html, body {
-    height: auto !important;
-    overflow: visible !important;
-    background: #fff !important;
-    color: #111827 !important;
-    font-size: 7.5pt !important;
-    line-height: 1.35 !important;
+    height: auto !important; overflow: visible !important;
+    background: #fff !important; color: #111827 !important;
+    font-size: 7pt !important; line-height: 1.3 !important;
     font-family: 'Inter', sans-serif;
   }
-
-  /* Preserve all colors in print */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  /* â”€â”€ Hide UI chrome â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .app-header, .app-sidebar, .app-sidebar-mobile,
-  .app-sidebar-overlay, .action-bar, .no-print { display: none !important; }
+  /* Hide EVERYTHING that is not the report */
+  .app-header, .app-sidebar, .app-sidebar-mobile, .app-sidebar-overlay,
+  .action-bar, .no-print,
+  [role="alert"], .fixed,
+  button { display: none !important; }
 
-  /* â”€â”€ Layout reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Layout */
   .app-body    { display: block !important; overflow: visible !important; }
   .app-content { overflow: visible !important; width: 100% !important; padding: 0 !important; }
   .app-shell   { height: auto !important; overflow: visible !important; display: block !important; }
-  .space-y-4   { gap: 0 !important; }
+  .space-y-4   { display: block !important; }
 
-  /* â”€â”€ Report document â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Report wrapper */
   .report-document {
-    border: 1px solid #d1d5db !important;
-    box-shadow: none !important;
-    border-radius: 3px !important;
-    background: #fff !important;
-    width: 100% !important;
+    border: 1px solid #d1d5db !important; box-shadow: none !important;
+    border-radius: 2px !important; background: #fff !important; width: 100% !important;
   }
 
-  /* â”€â”€ Document title (centered, blue double underline) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* TITLE BLOCK */
   .report-document > div:first-child {
-    border-bottom: 2px solid #2563eb !important;
-    text-align: center !important;
-    padding: 6pt 16pt 5pt !important;
-    background: #fff !important;
+    border-bottom: 2px solid #2563eb !important; text-align: center !important;
+    padding: 5pt 12pt 4pt !important; background: #fff !important;
   }
-  .report-document > div:first-child h1 {
-    font-size: 13pt !important;
-    letter-spacing: 0.12em !important;
+  .report-document > div:first-child h1 { font-size: 12pt !important; letter-spacing: 0.1em !important; margin: 0 !important; }
+  .report-document > div:first-child p  { font-size: 6.5pt !important; margin: 1pt 0 0 !important; }
+
+  /* ALL SECTIONS: zero gap */
+  .report-section {
+    border-bottom: 1px solid #e5e7eb !important; animation: none !important;
+    padding: 4pt 12pt !important; background: #fff !important;
+    break-inside: avoid; page-break-inside: avoid;
     margin: 0 !important;
   }
-  .report-document > div:first-child p { font-size: 7pt !important; margin: 1pt 0 0 !important; }
 
-  /* â”€â”€ Sections: very tight padding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .report-section {
-    border-bottom: 1px solid #e5e7eb !important;
-    animation: none !important;
-    padding: 5pt 14pt !important;
-    background: #fff !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
+  /* Remove ALL margin/padding utilities */
+  .mt-1,.mt-2,.mt-3,.mt-4,.mt-5,.mt-6,.mb-1,.mb-2,.mb-3,.mb-4,.mb-5,
+  .pt-4,.pt-5,.pb-4,.pb-5,.py-3,.py-4,.py-5 { margin: 0 !important; padding: 0 !important; }
+  .gap-1,.gap-2,.gap-3,.gap-4,.gap-5,.gap-6,.gap-7,.gap-8 { gap: 3pt !important; }
+  .space-y-5>*+*,.space-y-4>*+*,.space-y-3>*+*,.space-y-2>*+*,.space-y-1>*+*,
+  .space-y-2\.5>*+*,.space-y-1\.5>*+* { margin-top: 2pt !important; }
+  .p-3,.p-4,.px-3,.px-4,.px-5,.py-1,.py-2 { padding: 2pt 4pt !important; }
 
-  /* â”€â”€ Force all flex columns to row in hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .report-section > .flex.flex-col.md\\:flex-row,
-  .report-section > div > .flex.flex-col.md\\:flex-row {
-    flex-direction: row !important;
-    gap: 10pt !important;
-    align-items: flex-start !important;
-  }
-
-  /* â”€â”€ Profile image: small square â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* HERO: image + summary side by side */
+  .report-section > div.flex { flex-direction: row !important; gap: 8pt !important; align-items: flex-start !important; }
   .report-section img,
-  .report-section [class*="w-40"],
-  .report-section [class*="w-48"] {
-    width: 68pt !important;
-    height: 68pt !important;
-    min-width: 68pt !important;
-    min-height: 68pt !important;
-    max-width: 68pt !important;
-    border-radius: 5pt !important;
-    object-fit: cover !important;
-    object-position: top !important;
+  .report-section [class*="w-40"], .report-section [class*="w-48"] {
+    width: 62pt !important; height: 62pt !important;
+    min-width: 62pt !important; max-width: 62pt !important;
+    border-radius: 4pt !important; object-fit: cover !important; object-position: top !important;
+    flex-shrink: 0 !important;
   }
 
-  /* â”€â”€ 2-col grids â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Section header (blue icon box) */
+  [class*="bg-blue-600"],[class*="bg-blue-700"] { background-color: #2563eb !important; color: #fff !important; }
+  .report-section .w-5.h-5 { width: 10pt !important; height: 10pt !important; border-radius: 2pt !important; }
+
+  /* 2-col grids */
   .report-section.grid { display: grid !important; }
-  .report-section.grid-cols-1.lg\\:grid-cols-2 {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 12pt !important;
-  }
-  .report-section.md\\:grid-cols-2 {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 12pt !important;
-  }
+  .report-section.grid-cols-1.lg\:grid-cols-2,
+  .report-section.md\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; gap: 10pt !important; }
 
-  /* â”€â”€ 3-col bottom row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .report-section.md\\:grid-cols-3 {
-    grid-template-columns: 1fr 1fr 1fr !important;
-    gap: 10pt !important;
-  }
+  /* 3-col bottom row */
+  .report-section.md\:grid-cols-3 { grid-template-columns: 1fr 1fr 1fr !important; gap: 8pt !important; }
 
-  /* â”€â”€ Interests inner 2-col grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .grid.grid-cols-2 {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 2pt 8pt !important;
-  }
+  /* Interests inner grid */
+  .grid.grid-cols-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 1pt 6pt !important; }
 
-  /* â”€â”€ DocSectionHeader blue icon box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  [class*="bg-blue-600"], [class*="bg-blue-700"] {
-    background-color: #2563eb !important;
-    color: #fff !important;
-  }
-  /* Make icon box tiny */
-  .report-section .w-5.h-5 {
-    width: 11pt !important;
-    height: 11pt !important;
-    border-radius: 2pt !important;
-  }
-  /* Section header label font */
-  .report-section span[class*="tracking-"] {
-    font-size: 7.5pt !important;
-    letter-spacing: 0.08em !important;
-  }
+  /* Tables */
+  .report-table { width: 100% !important; font-size: 6.5pt !important; border-collapse: collapse !important; }
+  .report-table th { background: #f3f4f6 !important; color: #374151 !important; border: 1px solid #d1d5db !important; font-size: 6pt !important; padding: 2pt 4pt !important; }
+  .report-table td { color: #1f2937 !important; border: 1px solid #e5e7eb !important; background: #fff !important; padding: 2pt 4pt !important; font-size: 6.5pt !important; }
 
-  /* â”€â”€ Tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .report-table { width: 100% !important; font-size: 7pt !important; border-collapse: collapse !important; }
-  .report-table th {
-    background: #f3f4f6 !important; color: #374151 !important;
-    border: 1px solid #d1d5db !important; font-size: 6.5pt !important; padding: 3pt 5pt !important;
-  }
-  .report-table td {
-    color: #1f2937 !important; border: 1px solid #e5e7eb !important;
-    background: #fff !important; padding: 3pt 5pt !important; font-size: 7pt !important;
-  }
+  /* All text sizes */
+  p, span, li, td, th, div { font-size: 7pt !important; line-height: 1.32 !important; }
+  h1 { font-size: 12pt !important; }
+  h2, h3 { font-size: 8pt !important; }
 
-  /* â”€â”€ Text sizes throughout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .text-\\[14px\\], .text-\\[13px\\] { font-size: 7.5pt !important; }
-  .text-\\[12px\\] { font-size: 7pt !important; }
-  .text-\\[11px\\] { font-size: 6.5pt !important; }
-  .text-\\[10px\\] { font-size: 6pt !important; }
+  /* Lists */
+  ul, ol { margin: 1pt 0 !important; padding: 0 !important; }
+  li { margin: 1pt 0 !important; }
 
-  /* Executive summary text */
-  .report-section p { font-size: 7.5pt !important; line-height: 1.4 !important; margin: 0 !important; }
+  /* Net worth number */
+  .font-outfit.font-black { font-size: 11pt !important; }
 
-  /* Career timeline list */
-  .report-section ul { margin: 2pt 0 0 !important; padding: 0 !important; }
-  .report-section li { margin: 1.5pt 0 !important; font-size: 7.5pt !important; }
+  /* CONTENT LIMITS — show only top priority items
+     Career: max 8, Education: max 3, Achievements/Awards/Activities: max 3, Sources: max 8 */
+  .report-section ul > li:nth-child(n+9)  { display: none !important; } /* career */
+  .report-section ul > li:nth-child(n+4)  { display: none !important; } /* edu/awards/achievements/activities */
+  /* Sources list: max 8 */
+  .report-section > div > ul > li:nth-child(n+9) { display: none !important; }
 
-  /* Net worth value */
-  .font-outfit.font-black { font-size: 13pt !important; }
+  /* Hide metric pills, badges, copy buttons, tags in print */
+  .report-section .flex.flex-wrap.gap-2 > *,
+  .badge-well-sourced, .badge-limited { display: none !important; }
+  .report-tag { background:#f1f5f9!important;color:#374151!important;border:1px solid #e2e8f0!important;font-size:6.5pt!important;padding:1pt 3pt!important; }
 
-  /* Metric pills: hide in print to save space */
-  .report-section .flex.flex-wrap.gap-2 > [class*="rounded-full"],
-  .badge-well-sourced, .badge-limited,
-  .report-section [class*="MetricPill"] { display: none !important; }
+  /* Citations */
+  .citation { border:1px solid #2563eb!important;color:#2563eb!important;background:#eff6ff!important;font-size:5.5pt!important;padding:0 2pt!important; }
 
-  /* Copy buttons hidden */
-  button { display: none !important; }
+  /* Links */
+  a { color:#2563eb!important;text-decoration:underline!important; }
 
-  /* â”€â”€ Citations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .citation {
-    border: 1px solid #2563eb !important; color: #2563eb !important;
-    background: #eff6ff !important; font-size: 6pt !important; padding: 0 2pt !important;
-  }
-
-  /* â”€â”€ Tags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .report-tag {
-    background: #f1f5f9 !important; color: #374151 !important;
-    border: 1px solid #e2e8f0 !important; font-size: 7pt !important; padding: 1pt 4pt !important;
-  }
-
-  /* â”€â”€ Links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  a { color: #2563eb !important; text-decoration: underline !important; }
-
-  /* â”€â”€ Space utilities: collapse them â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  .space-y-5 > * + *, .space-y-4 > * + *, .space-y-3 > * + *,
-  .space-y-2\\.5 > * + *, .space-y-2 > * + *, .space-y-1\\.5 > * + * {
-    margin-top: 2pt !important;
-  }
-  .mt-3, .mt-4 { margin-top: 2pt !important; }
-  .mt-2, .mt-1 { margin-top: 1pt !important; }
-  .gap-6, .gap-8 { gap: 8pt !important; }
-  .gap-4, .gap-3 { gap: 4pt !important; }
-  .gap-2 { gap: 2pt !important; }
-  .py-4, .py-5 { padding-top: 3pt !important; padding-bottom: 3pt !important; }
-  .p-4, .p-3 { padding: 3pt 5pt !important; }
-
-  /* â”€â”€ Page break: force page 2 to start at career section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  /* The 2-col career+education section should start page 2 */
-  .report-section.grid.grid-cols-1.lg\\:grid-cols-2:first-of-type {
+  /* PAGE BREAK: Page 1 = title+hero+details+bio, Page 2 = career onwards */
+  .report-section.grid.grid-cols-1.lg\:grid-cols-2 {
     page-break-before: always !important;
     break-before: page !important;
   }
 
-  /* â”€â”€ Document footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Footer */
   .report-document > div:last-child {
-    background: #f9fafb !important; border-top: 1px solid #e5e7eb !important;
-    text-align: center !important; font-size: 6.5pt !important;
-    color: #9ca3af !important; padding: 4pt 14pt !important;
+    background:#f9fafb!important;border-top:1px solid #e5e7eb!important;
+    text-align:center!important;font-size:6pt!important;color:#9ca3af!important;padding:3pt 12pt!important;
   }
 
-  /* â”€â”€ Heading control â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  h1, h2, h3 { page-break-after: avoid; orphans: 3; widows: 3; }
+  /* No orphan headers */
+  h1,h2,h3 { page-break-after:avoid; orphans:3; widows:3; }
 }
-

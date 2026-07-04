@@ -1,8 +1,9 @@
 import type { Profile } from "@/lib/schema";
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
-// Forces light theme before printing (avoids dark-mode PDF mess),
-// then restores the original theme after the print dialog closes.
+// 1. Forces light theme (avoids dark-mode PDF mess)
+// 2. Hides toast/alert overlays so they don't bleed into the PDF
+// 3. Restores everything after the print dialog closes
 
 export function exportToPdf(): void {
   if (typeof window === "undefined") return;
@@ -10,21 +11,32 @@ export function exportToPdf(): void {
   const html = document.documentElement;
   const wasDark = html.classList.contains("dark");
 
-  // 1. Switch to light mode for clean PDF output
-  if (wasDark) {
-    html.classList.remove("dark");
-  }
+  // Switch to light mode for clean PDF output
+  if (wasDark) html.classList.remove("dark");
 
-  // 2. Restore dark mode after print dialog is dismissed
+  // Hide all toast/notification overlays immediately
+  const hiddenEls: { el: HTMLElement; prev: string }[] = [];
+  const hide = (el: HTMLElement) => {
+    hiddenEls.push({ el, prev: el.style.display });
+    el.style.display = "none";
+  };
+
+  // Toast container sits in a fixed bottom-right div
+  document.querySelectorAll<HTMLElement>('[role="alert"]').forEach(hide);
+  // Also hide any fixed overlay containers
+  document.querySelectorAll<HTMLElement>(".fixed.bottom-6, .fixed.bottom-4").forEach(hide);
+
+  // Restore everything after print dialog closes
   const restore = () => {
     if (wasDark) html.classList.add("dark");
+    hiddenEls.forEach(({ el, prev }) => { el.style.display = prev; });
   };
   window.addEventListener("afterprint", restore, { once: true });
 
-  // 3. Small delay so the browser re-renders without dark styles before printing
+  // Delay so browser re-renders cleanly (no toast flicker) before print
   setTimeout(() => {
     window.print();
-  }, 80);
+  }, 200);
 }
 
 // ─── JSON Export ─────────────────────────────────────────────────────────────
