@@ -20,6 +20,14 @@ Aura researches any public figure — real person or fictional character — and
 - One-click PDF export
 
 ---
+## sample
+## Pofile generated 
+<img width="244" height="876" alt="image" src="https://github.com/user-attachments/assets/f5ddf625-33d4-43f5-9e82-c68d8fd3a751" />
+
+## (PDF IMAGES)
+<img width="599" height="843" alt="Screenshot 2026-07-05 012146" src="https://github.com/user-attachments/assets/2ceacfeb-fadf-4ef3-a340-11c3352cc2cb" />
+
+<img width="593" height="261" alt="image" src="https://github.com/user-attachments/assets/28c31c9a-4071-4b60-b42a-18b4e3926146" />
 
 ## How to use
 
