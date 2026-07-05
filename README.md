@@ -140,7 +140,6 @@ User enters: "Satya Nadella" + "CEO of Microsoft"
 | **Tavily Search API** | Web research | Real-time, AI-optimised search with content extraction |
 | **Zod** | Schema validation | Runtime type checking of AI-generated JSON |
 | **Redis (Upstash)** | Persistent cache | Sub-100ms repeat responses; falls back to in-memory |
-| **AniList GraphQL** | Anime character images | Official licensed artwork for fictional characters |
 | **Wikipedia API** | Person images + article data | Free, authoritative, global coverage |
 | **Wikidata API** | P18 portrait property | Curated person photos, linked to knowledge graph |
 | **DuckDuckGo API** | Fallback images | Instant Answer images for public figures |
