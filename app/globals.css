@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -307,10 +307,26 @@
   .app-header, .app-sidebar, .app-sidebar-mobile, .app-sidebar-overlay,
   .action-bar, .no-print, [role="alert"], .fixed, button { display: none !important; }
 
-  /* ── LAYOUT RESET ────────────────────────────────────────────────────── */
+  /* ── LAYOUT RESET ────────────────────────────────────────── */
   .app-body    { display: block !important; overflow: visible !important; }
   .app-content { overflow: visible !important; width: 100% !important; padding: 0 !important; }
   .app-shell   { height: auto !important; overflow: visible !important; display: block !important; }
+
+  /* The scrollable flex-1 overflow-y-auto container that wraps the report.
+     On mobile, this element has a fixed height + overflow:hidden which creates
+     a large blank gap in print because the browser doesn't reflow it.
+     Force it to be auto-height and fully visible for print. */
+  .app-content > div.flex-1 {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: none !important;
+  }
+  /* The inner centering wrapper */
+  .app-content > div.flex-1 > div {
+    overflow: visible !important;
+    height: auto !important;
+  }
 
   /* ── REPORT WRAPPER ──────────────────────────────────────────────────── */
   .report-document {

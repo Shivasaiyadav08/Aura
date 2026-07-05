@@ -26,6 +26,12 @@ export function exportToPdf(): void {
     // Only hide things that are NOT the report itself
     if (!el.closest(".report-document")) hide(el);
   });
+  // Explicitly hide mobile-only chrome that has no no-print class
+  // (MobileRecentStrip, mobile form toggle header) to prevent them
+  // from appearing at the bottom of the printed PDF.
+  document.querySelectorAll<HTMLElement>(".lg\\:hidden").forEach(el => {
+    if (!el.closest(".report-document")) hide(el);
+  });
 
   // 4. Restore everything after the print dialog closes
   const restore = () => {

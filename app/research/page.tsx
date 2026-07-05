@@ -543,12 +543,14 @@ export default function ResearchPage() {
             </div>
 
             {/* ── MOBILE ONLY: Recent profiles below the profile output ──── */}
-            <MobileRecentStrip
-              history={allHistory}
-              onSelect={handleHistorySelect}
-              onDelete={(id, e) => { e.stopPropagation(); deleteEntry(id); }}
-              onToggleFav={(id, e) => { e.stopPropagation(); toggleFavorite(id); }}
-            />
+            <div className="no-print">
+              <MobileRecentStrip
+                history={allHistory}
+                onSelect={handleHistorySelect}
+                onDelete={(id, e) => { e.stopPropagation(); deleteEntry(id); }}
+                onToggleFav={(id, e) => { e.stopPropagation(); toggleFavorite(id); }}
+              />
+            </div>
           </div>
 
         </main>
