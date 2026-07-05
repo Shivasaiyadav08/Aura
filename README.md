@@ -21,13 +21,11 @@ Aura researches any public figure — real person or fictional character — and
 
 ---
 ## sample
-## Pofile generated 
-<img width="244" height="876" alt="image" src="https://github.com/user-attachments/assets/f5ddf625-33d4-43f5-9e82-c68d8fd3a751" />
 
-## (PDF IMAGES)
-<img width="599" height="843" alt="Screenshot 2026-07-05 012146" src="https://github.com/user-attachments/assets/2ceacfeb-fadf-4ef3-a340-11c3352cc2cb" />
+### (PDF IMAGES)
+<img width="598" height="839" alt="Screenshot 2026-07-05 190017" src="https://github.com/user-attachments/assets/a2438622-ab53-4e27-9d39-aff93d0277a0" />
+<img width="747" height="418" alt="Screenshot 2026-07-05 190041" src="https://github.com/user-attachments/assets/a1d37c5e-7caa-4801-a005-22b260e142c0" />
 
-<img width="593" height="261" alt="image" src="https://github.com/user-attachments/assets/28c31c9a-4071-4b60-b42a-18b4e3926146" />
 
 ## How to use
 
