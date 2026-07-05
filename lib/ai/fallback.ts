@@ -49,21 +49,11 @@ const PROGRESS = {
 // ─── Key Cooldown Helpers ─────────────────────────────────────────────────────
 
 /**
- * Returns the minimum remaining cooldown (ms) across all keys.
- * Returns 0 if any key is currently available.
+ * Returns the minimum remaining cooldown (ms) across all (key, model) pairs.
+ * Returns 0 if any combination is currently available.
  */
 function getMinCooldownMs(): number {
-  const stats = keyManager.getStats();
-  const now = Date.now();
-  let min = Infinity;
-  for (const s of stats) {
-    if (s.status === "available") return 0; // at least one key ready
-    if (s.cooldownUntil !== null) {
-      const remaining = s.cooldownUntil - now;
-      if (remaining > 0 && remaining < min) min = remaining;
-    }
-  }
-  return min === Infinity ? 0 : min;
+  return keyManager.getMinModelCooldownMs();
 }
 
 // ─── Single Matrix Pass ───────────────────────────────────────────────────────

@@ -21,6 +21,10 @@ class GeminiKeyManager {
   private states: KeyState[] = [];
   private roundRobinIndex = 0;
 
+  // Per-(key, model) quota tracking.
+  // Key: `${keyIndex}:${modelId}`, Value: timestamp when this combo recovers
+  private modelQuotaCooldowns = new Map<string, number>();
+
   constructor() {
     const rawKeys = [
       process.env.GEMINI_API_KEY,
@@ -55,6 +59,51 @@ class GeminiKeyManager {
     }
   }
 
+  /** Check if a specific (key, model) combination is currently in quota cooldown */
+  public isModelCooling(keyIndex: number, modelId: string): boolean {
+    const mapKey = `${keyIndex}:${modelId}`;
+    const until = this.modelQuotaCooldowns.get(mapKey);
+    if (!until) return false;
+    if (Date.now() >= until) {
+      this.modelQuotaCooldowns.delete(mapKey);
+      return false;
+    }
+    return true;
+  }
+
+  /** Mark a specific (key, model) combination as quota-exceeded */
+  public markModelFailed(keyIndex: number, modelId: string, cooldownMs: number): void {
+    const mapKey = `${keyIndex}:${modelId}`;
+    this.modelQuotaCooldowns.set(mapKey, Date.now() + cooldownMs);
+    // Also increment overall key fail count for monitoring
+    if (keyIndex >= 0 && keyIndex < this.states.length) {
+      this.states[keyIndex].failCount++;
+      this.states[keyIndex].lastError = `quota-exceeded for model ${modelId}`;
+    }
+    console.warn(`[KeyManager] Key ${keyIndex} + model ${modelId} → quota cooldown ${Math.round(cooldownMs / 1000)}s`);
+  }
+
+  /** Get minimum cooldown (ms) across ALL (key, model) combinations */
+  public getMinModelCooldownMs(): number {
+    const now = Date.now();
+    let min = Infinity;
+    Array.from(this.modelQuotaCooldowns.values()).forEach(until => {
+      const remaining = until - now;
+      if (remaining > 0 && remaining < min) min = remaining;
+    });
+    return min === Infinity ? 0 : min;
+  }
+
+  /** Returns true if there is at least one (key, model) combination not in cooldown */
+  public hasAnyAvailable(modelIds: string[]): boolean {
+    for (let k = 0; k < this.keys.length; k++) {
+      for (const modelId of modelIds) {
+        if (!this.isModelCooling(k, modelId)) return true;
+      }
+    }
+    return false;
+  }
+
   /** Restore keys whose cooldown period has elapsed */
   private refreshStatuses(): void {
     const now = Date.now();
@@ -68,22 +117,17 @@ class GeminiKeyManager {
         console.log(`[KeyManager] Key ${s.index} restored to available after cooldown.`);
         s.status = "available";
         s.cooldownUntil = null;
-        // Reset fail count on recovery so temporary errors don't accumulate forever
         s.failCount = 0;
       }
     }
   }
 
-  /** Get the next available key (round-robin, skipping unavailable).
-   *  FIX: Advances roundRobinIndex after selection so the next call
-   *  gets the following key rather than repeating the same one.
-   */
+  /** Get the next available key (round-robin, skipping disabled keys) */
   public getAvailableKey(): { key: string; index: number } | null {
     this.refreshStatuses();
     for (let i = 0; i < this.keys.length; i++) {
       const idx = (this.roundRobinIndex + i) % this.keys.length;
-      if (this.states[idx].status === "available") {
-        // Advance the pointer AFTER selection so the next call picks the next key
+      if (this.states[idx].status !== "disabled") {
         this.roundRobinIndex = (idx + 1) % this.keys.length;
         return { key: this.keys[idx], index: idx };
       }
@@ -91,59 +135,32 @@ class GeminiKeyManager {
     return null;
   }
 
-  /** Check if a specific key index is currently usable (after refreshing cooldowns).
-   *  Returns true if available, false if cooling/quota-exceeded/disabled.
-   */
-  public isKeyAvailable(index: number): boolean {
-    this.refreshStatuses();
-    if (index < 0 || index >= this.states.length) return false;
-    return this.states[index].status === "available";
-  }
-
-  /** Mark a key as failed with an appropriate cooldown based on error type */
+  /** Mark a key as globally failed (for non-quota errors like 500, 503) */
   public markKeyFailed(index: number, errorMsg: string): void {
     if (index < 0 || index >= this.states.length) return;
-
     const s = this.states[index];
     s.failCount++;
     s.lastError = errorMsg;
 
     const lower = errorMsg.toLowerCase();
-    const isQuota =
-      lower.includes("quota") ||
-      lower.includes("resource exhausted") ||
-      lower.includes("exhausted") ||
-      errorMsg.includes("429");
     const isServer =
-      errorMsg.includes("503") ||
-      errorMsg.includes("500") ||
-      errorMsg.includes("502") ||
-      errorMsg.includes("504") ||
-      lower.includes("overloaded") ||
-      lower.includes("unavailable");
+      errorMsg.includes("503") || errorMsg.includes("500") ||
+      errorMsg.includes("502") || errorMsg.includes("504") ||
+      lower.includes("overloaded") || lower.includes("unavailable");
 
-    if (isQuota) {
-      s.status = "quota-exceeded";
-      s.cooldownUntil = Date.now() + 62_000; // 62s — Gemini free tier resets per 60s
-    } else if (isServer) {
+    if (isServer) {
       s.status = "cooling";
-      s.cooldownUntil = Date.now() + 10_000; // 10s
+      s.cooldownUntil = Date.now() + 10_000; // 10s for server errors
     } else {
       s.status = "rate-limited";
-      s.cooldownUntil = Date.now() + 15_000; // 15s
+      s.cooldownUntil = Date.now() + 15_000; // 15s for rate limits
     }
 
-    // Do NOT forcibly advance roundRobinIndex here — getAvailableKey already manages rotation
-    const remaining = s.cooldownUntil
-      ? Math.round((s.cooldownUntil - Date.now()) / 1000)
-      : 0;
-    console.warn(
-      `[KeyManager] Key ${index} → ${s.status} (cooldown: ${remaining}s remaining)`
-    );
+    const remaining = s.cooldownUntil ? Math.round((s.cooldownUntil - Date.now()) / 1000) : 0;
+    console.warn(`[KeyManager] Key ${index} → ${s.status} (${remaining}s)`);
   }
 
   public getKeyByIndex(index: number): { key: string; index: number } | null {
-    // No refreshStatuses here — caller decides whether to check availability
     if (index >= 0 && index < this.keys.length) {
       return { key: this.keys[index], index };
     }
@@ -153,9 +170,15 @@ class GeminiKeyManager {
   public getKeyState(index: number): KeyState | null {
     this.refreshStatuses();
     if (index >= 0 && index < this.states.length) {
-      return { ...this.states[index] }; // return a copy to prevent mutation
+      return { ...this.states[index] };
     }
     return null;
+  }
+
+  public isKeyAvailable(index: number): boolean {
+    this.refreshStatuses();
+    if (index < 0 || index >= this.states.length) return false;
+    return this.states[index].status !== "disabled";
   }
 
   public hasKeys(): boolean { return this.keys.length > 0; }
@@ -173,10 +196,6 @@ class GeminiKeyManager {
 export const keyManager = new GeminiKeyManager();
 
 // ─── Gemini Caller (with AbortController for real request cancellation) ───────
-//
-// IMPORTANT: Using AbortController + signal instead of Promise.race.
-// Promise.race leaves the underlying fetch running (wasting quota even on timeout).
-// AbortController actually cancels the HTTP request — no quota consumed.
 
 async function callGoogleGemini(
   modelConfig: ModelConfig,
@@ -184,10 +203,7 @@ async function callGoogleGemini(
   apiKey: string
 ): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(
-    () => controller.abort(),
-    modelConfig.timeoutMs
-  );
+  const timer = setTimeout(() => controller.abort(), modelConfig.timeoutMs);
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -199,7 +215,6 @@ async function callGoogleGemini(
       },
     });
 
-    // Pass the AbortSignal — this actually cancels the HTTP request on timeout
     const result = await model.generateContent(prompt, {
       signal: controller.signal,
     } as any);
@@ -210,7 +225,6 @@ async function callGoogleGemini(
     }
     return text;
   } catch (err: any) {
-    // Distinguish abort-caused timeout from API errors
     if (
       controller.signal.aborted ||
       err?.name === "AbortError" ||
@@ -226,90 +240,15 @@ async function callGoogleGemini(
   }
 }
 
-// ─── Unified Provider Call ────────────────────────────────────────────────────
-//
-// For each model in the fallback chain, iterates ALL available API keys
-// before giving up on that model. Timeout errors propagate immediately
-// (they are NOT key failures — the key may work for a different model).
-
-export async function callModelProvider(
-  modelConfig: ModelConfig,
-  prompt: string,
-  onKeyRotate?: (fromIndex: number, toIndex: number, reason: string) => void
-): Promise<string> {
-  if (modelConfig.provider !== "google") {
-    throw new Error(`Unsupported provider: "${modelConfig.provider}". Only "google" (Gemini) is supported.`);
-  }
-
-  const totalKeys = keyManager.getTotalKeys();
-  if (totalKeys === 0) {
-    throw new Error(
-      "No Gemini API keys configured. Add GEMINI_API_KEY_1 through GEMINI_API_KEY_5 to .env.local"
-    );
-  }
-
-  for (let attempt = 0; attempt < totalKeys; attempt++) {
-    const keyInfo = keyManager.getAvailableKey();
-    if (!keyInfo) {
-      throw new AIRateLimitError(
-        `All Gemini API keys are currently rate-limited for model ${modelConfig.id}.`,
-        "google"
-      );
-    }
-
-    try {
-      return await callGoogleGemini(modelConfig, prompt, keyInfo.key);
-    } catch (err: any) {
-      const msg = err instanceof Error ? err.message : String(err);
-
-      // Timeout: NOT a key failure — key might work for a lighter model.
-      // Propagate immediately so the fallback chain can try the next model.
-      if (err instanceof AITimeoutError) {
-        console.warn(`[Provider] ${modelConfig.name} timeout on key ${keyInfo.index}. Trying next model.`);
-        throw err;
-      }
-
-      // 404 / model not found: NOT a key failure — skip this model entirely
-      if (msg.includes("404") || msg.toLowerCase().includes("not found")) {
-        console.warn(`[Provider] ${modelConfig.name} model not found (404). Trying next model.`);
-        throw err;
-      }
-
-      // Key-specific failures: quota, rate-limit, server errors
-      const isKeyFailure =
-        msg.includes("429") ||
-        msg.toLowerCase().includes("quota") ||
-        msg.toLowerCase().includes("resource exhausted") ||
-        msg.includes("503") ||
-        msg.includes("500") ||
-        msg.includes("502") ||
-        msg.includes("504") ||
-        msg.toLowerCase().includes("overloaded") ||
-        err instanceof AIRateLimitError;
-
-      if (isKeyFailure) {
-        keyManager.markKeyFailed(keyInfo.index, msg);
-        const next = keyManager.getAvailableKey();
-        if (onKeyRotate && next) onKeyRotate(keyInfo.index, next.index, msg);
-        continue; // try next key for same model
-      }
-
-      // All other errors: propagate
-      throw err;
-    }
-  }
-
-  throw new AIRateLimitError(
-    `All ${totalKeys} Gemini API keys exhausted for model ${modelConfig.id}.`,
-    "google"
-  );
-}
-
 // ─── Per-Key Provider Call ────────────────────────────────────────────────────
 //
-// FIX: No longer throws when a key is cooling/unavailable.
-// Instead returns null so the fallback matrix can continue to the next key.
-// This prevents runWithRetry from restarting the entire matrix for unavailable keys.
+// CRITICAL FIX: Key failure state is now tracked per (key, model) pair.
+//
+// Previously: one model's quota failure blocked ALL other models on that key.
+// Now: key-0 quota-exceeded for gemini-2.5-pro does NOT block key-0 from
+// being tried with gemini-2.5-flash (separate quota bucket on Google's side).
+//
+// Returns null (never throws) so the fallback matrix continues cleanly.
 
 export async function callModelProviderWithKey(
   modelConfig: ModelConfig,
@@ -317,63 +256,121 @@ export async function callModelProviderWithKey(
   keyIndex: number
 ): Promise<string | null> {
   if (modelConfig.provider !== "google") {
-    throw new Error(`Unsupported provider: "${modelConfig.provider}". Only "google" (Gemini) is supported.`);
+    throw new Error(`Unsupported provider: "${modelConfig.provider}". Only "google" is supported.`);
   }
 
-  // FIX: If the key is not available (cooling/quota-exceeded), return null to skip.
-  // Do NOT throw — throwing causes the outer runWithRetry to restart the whole matrix.
-  if (!keyManager.isKeyAvailable(keyIndex)) {
-    const state = keyManager.getKeyState(keyIndex);
-    console.warn(
-      `[Provider] Skipping key ${keyIndex} (${state?.status ?? "unknown"}). Model: ${modelConfig.name}`
-    );
-    return null; // Signal to caller: skip this key, try the next one
+  // Only skip if this exact (key, model) combination is in quota cooldown
+  if (keyManager.isModelCooling(keyIndex, modelConfig.id)) {
+    return null; // This specific key+model combo is cooling — skip
   }
 
   const keyInfo = keyManager.getKeyByIndex(keyIndex);
   if (!keyInfo) {
-    console.warn(`[Provider] Key at index ${keyIndex} does not exist.`);
     return null;
   }
 
   try {
-    return await callGoogleGemini(modelConfig, prompt, keyInfo.key);
+    const text = await callGoogleGemini(modelConfig, prompt, keyInfo.key);
+    return text;
   } catch (err: any) {
     const msg = err instanceof Error ? err.message : String(err);
 
-    // Timeout: NOT a key failure — key might work for a lighter model.
-    // Return null to let the matrix continue to the next model for this key.
+    // Timeout: not a quota failure, not a key failure.
+    // Return null so the matrix tries the next model/key without penalizing this combo.
     if (err instanceof AITimeoutError) {
-      console.warn(`[Provider] ${modelConfig.name} timeout on key ${keyIndex}. Continuing...`);
+      console.warn(`[Provider] Timeout — Key ${keyIndex}, Model: ${modelConfig.name}`);
       return null;
     }
 
-    // 404 / model not found: NOT a key failure — skip this model but keep the key
+    // 404 / model not found: skip this model (not a key failure)
     if (msg.includes("404") || msg.toLowerCase().includes("not found")) {
-      console.warn(`[Provider] ${modelConfig.name} model not found (404) for key ${keyIndex}. Skipping model.`);
+      console.warn(`[Provider] Model not found — Key ${keyIndex}, Model: ${modelConfig.name}`);
       return null;
     }
 
-    // Key-specific failures: quota, rate-limit, server errors
-    const isKeyFailure =
-      msg.includes("429") ||
-      msg.toLowerCase().includes("quota") ||
-      msg.toLowerCase().includes("resource exhausted") ||
-      msg.includes("503") ||
-      msg.includes("500") ||
-      msg.includes("502") ||
-      msg.includes("504") ||
-      msg.toLowerCase().includes("overloaded") ||
-      err instanceof AIRateLimitError;
+    const lower = msg.toLowerCase();
 
-    if (isKeyFailure) {
-      keyManager.markKeyFailed(keyIndex, msg);
-      console.warn(`[Provider] Key ${keyIndex} marked failed for model ${modelConfig.name}: ${msg}`);
-      return null; // FIX: return null instead of re-throwing
+    // Quota / rate-limit: mark ONLY this (key, model) pair as cooling.
+    // Other models on this key may still have quota available.
+    const isQuota =
+      msg.includes("429") ||
+      lower.includes("quota") ||
+      lower.includes("resource exhausted") ||
+      lower.includes("rate limit") ||
+      lower.includes("too many requests");
+
+    if (isQuota) {
+      // 62s cooldown — Gemini free tier resets per minute
+      keyManager.markModelFailed(keyIndex, modelConfig.id, 62_000);
+      return null;
     }
 
-    // For unexpected errors, log and return null to keep the pipeline alive
-    console.error(`[Provider] Unexpected error on key ${keyIndex}, model ${modelConfig.name}: ${msg}`);
+    // Server errors (500, 502, 503, 504, overloaded): mark the whole key briefly
+    const isServer =
+      msg.includes("503") || msg.includes("500") ||
+      msg.includes("502") || msg.includes("504") ||
+      lower.includes("overloaded") || lower.includes("unavailable");
+
+    if (isServer) {
+      keyManager.markKeyFailed(keyIndex, msg);
+      return null;
+    }
+
+    // Any other error: log and skip
+    console.error(`[Provider] Unexpected error — Key ${keyIndex}, Model: ${modelConfig.name}: ${msg}`);
     return null;
   }
+}
+
+// ─── Unified Provider Call (used by image resolver) ──────────────────────────
+
+export async function callModelProvider(
+  modelConfig: ModelConfig,
+  prompt: string,
+  onKeyRotate?: (fromIndex: number, toIndex: number, reason: string) => void
+): Promise<string> {
+  if (modelConfig.provider !== "google") {
+    throw new Error(`Unsupported provider: "${modelConfig.provider}". Only "google" is supported.`);
+  }
+
+  const totalKeys = keyManager.getTotalKeys();
+  if (totalKeys === 0) {
+    throw new Error("No Gemini API keys configured.");
+  }
+
+  for (let attempt = 0; attempt < totalKeys; attempt++) {
+    const keyInfo = keyManager.getAvailableKey();
+    if (!keyInfo) {
+      throw new AIRateLimitError(`All Gemini API keys are exhausted for model ${modelConfig.id}.`, "google");
+    }
+
+    // Skip if this (key, model) is cooling
+    if (keyManager.isModelCooling(keyInfo.index, modelConfig.id)) {
+      continue;
+    }
+
+    try {
+      return await callGoogleGemini(modelConfig, prompt, keyInfo.key);
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+
+      if (err instanceof AITimeoutError) throw err;
+      if (msg.includes("404") || msg.toLowerCase().includes("not found")) throw err;
+
+      const lower = msg.toLowerCase();
+      const isQuota = msg.includes("429") || lower.includes("quota") || lower.includes("resource exhausted");
+
+      if (isQuota) {
+        keyManager.markModelFailed(keyInfo.index, modelConfig.id, 62_000);
+        const next = keyManager.getAvailableKey();
+        if (onKeyRotate && next) onKeyRotate(keyInfo.index, next.index, msg);
+        continue;
+      }
+
+      keyManager.markKeyFailed(keyInfo.index, msg);
+      continue;
+    }
+  }
+
+  throw new AIRateLimitError(`All ${totalKeys} keys exhausted for model ${modelConfig.id}.`, "google");
 }
