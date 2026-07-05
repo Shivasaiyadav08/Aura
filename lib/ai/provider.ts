@@ -49,7 +49,7 @@ class GeminiKeyManager {
     }
 
     if (this.keys.length === 0) {
-      console.error("[KeyManager] No Gemini API keys found. Add GEMINI_API_KEY_1 through GEMINI_API_KEY_4 to .env.local");
+      console.error("[KeyManager] No Gemini API keys found. Add GEMINI_API_KEY_1 through GEMINI_API_KEY_5 to .env.local");
     } else {
       console.log(`[KeyManager] Initialized with ${this.keys.length} Gemini API key(s).`);
     }
@@ -68,20 +68,36 @@ class GeminiKeyManager {
         console.log(`[KeyManager] Key ${s.index} restored to available after cooldown.`);
         s.status = "available";
         s.cooldownUntil = null;
+        // Reset fail count on recovery so temporary errors don't accumulate forever
+        s.failCount = 0;
       }
     }
   }
 
-  /** Get the next available key (round-robin, skipping unavailable) */
+  /** Get the next available key (round-robin, skipping unavailable).
+   *  FIX: Advances roundRobinIndex after selection so the next call
+   *  gets the following key rather than repeating the same one.
+   */
   public getAvailableKey(): { key: string; index: number } | null {
     this.refreshStatuses();
     for (let i = 0; i < this.keys.length; i++) {
       const idx = (this.roundRobinIndex + i) % this.keys.length;
       if (this.states[idx].status === "available") {
+        // Advance the pointer AFTER selection so the next call picks the next key
+        this.roundRobinIndex = (idx + 1) % this.keys.length;
         return { key: this.keys[idx], index: idx };
       }
     }
     return null;
+  }
+
+  /** Check if a specific key index is currently usable (after refreshing cooldowns).
+   *  Returns true if available, false if cooling/quota-exceeded/disabled.
+   */
+  public isKeyAvailable(index: number): boolean {
+    this.refreshStatuses();
+    if (index < 0 || index >= this.states.length) return false;
+    return this.states[index].status === "available";
   }
 
   /** Mark a key as failed with an appropriate cooldown based on error type */
@@ -117,17 +133,17 @@ class GeminiKeyManager {
       s.cooldownUntil = Date.now() + 45_000; // 45s
     }
 
-    this.roundRobinIndex = (index + 1) % this.keys.length;
+    // Do NOT forcibly advance roundRobinIndex here — getAvailableKey already manages rotation
     const remaining = s.cooldownUntil
       ? Math.round((s.cooldownUntil - Date.now()) / 1000)
       : 0;
     console.warn(
-      `[KeyManager] Key ${index} → ${s.status} (cooldown: ${remaining}s). Next index: ${this.roundRobinIndex}`
+      `[KeyManager] Key ${index} → ${s.status} (cooldown: ${remaining}s remaining)`
     );
   }
 
   public getKeyByIndex(index: number): { key: string; index: number } | null {
-    this.refreshStatuses();
+    // No refreshStatuses here — caller decides whether to check availability
     if (index >= 0 && index < this.keys.length) {
       return { key: this.keys[index], index };
     }
@@ -137,7 +153,7 @@ class GeminiKeyManager {
   public getKeyState(index: number): KeyState | null {
     this.refreshStatuses();
     if (index >= 0 && index < this.states.length) {
-      return this.states[index];
+      return { ...this.states[index] }; // return a copy to prevent mutation
     }
     return null;
   }
@@ -228,7 +244,7 @@ export async function callModelProvider(
   const totalKeys = keyManager.getTotalKeys();
   if (totalKeys === 0) {
     throw new Error(
-      "No Gemini API keys configured. Add GEMINI_API_KEY_1 through GEMINI_API_KEY_4 to .env.local"
+      "No Gemini API keys configured. Add GEMINI_API_KEY_1 through GEMINI_API_KEY_5 to .env.local"
     );
   }
 
@@ -289,26 +305,35 @@ export async function callModelProvider(
   );
 }
 
+// ─── Per-Key Provider Call ────────────────────────────────────────────────────
+//
+// FIX: No longer throws when a key is cooling/unavailable.
+// Instead returns null so the fallback matrix can continue to the next key.
+// This prevents runWithRetry from restarting the entire matrix for unavailable keys.
+
 export async function callModelProviderWithKey(
   modelConfig: ModelConfig,
   prompt: string,
   keyIndex: number
-): Promise<string> {
+): Promise<string | null> {
   if (modelConfig.provider !== "google") {
     throw new Error(`Unsupported provider: "${modelConfig.provider}". Only "google" (Gemini) is supported.`);
   }
 
-  const keyInfo = keyManager.getKeyByIndex(keyIndex);
-  if (!keyInfo) {
-    throw new Error(`Key at index ${keyIndex} does not exist.`);
+  // FIX: If the key is not available (cooling/quota-exceeded), return null to skip.
+  // Do NOT throw — throwing causes the outer runWithRetry to restart the whole matrix.
+  if (!keyManager.isKeyAvailable(keyIndex)) {
+    const state = keyManager.getKeyState(keyIndex);
+    console.warn(
+      `[Provider] Skipping key ${keyIndex} (${state?.status ?? "unknown"}). Model: ${modelConfig.name}`
+    );
+    return null; // Signal to caller: skip this key, try the next one
   }
 
-  const state = keyManager.getKeyState(keyIndex);
-  if (state && state.status !== "available") {
-    throw new AIRateLimitError(
-      `Gemini API key at index ${keyIndex} is currently unavailable (${state.status}).`,
-      "google"
-    );
+  const keyInfo = keyManager.getKeyByIndex(keyIndex);
+  if (!keyInfo) {
+    console.warn(`[Provider] Key at index ${keyIndex} does not exist.`);
+    return null;
   }
 
   try {
@@ -317,15 +342,16 @@ export async function callModelProviderWithKey(
     const msg = err instanceof Error ? err.message : String(err);
 
     // Timeout: NOT a key failure — key might work for a lighter model.
+    // Return null to let the matrix continue to the next model for this key.
     if (err instanceof AITimeoutError) {
-      console.warn(`[Provider] ${modelConfig.name} timeout on key ${keyIndex}.`);
-      throw err;
+      console.warn(`[Provider] ${modelConfig.name} timeout on key ${keyIndex}. Continuing...`);
+      return null;
     }
 
-    // 404 / model not found: NOT a key failure
+    // 404 / model not found: NOT a key failure — skip this model but keep the key
     if (msg.includes("404") || msg.toLowerCase().includes("not found")) {
-      console.warn(`[Provider] ${modelConfig.name} model not found (404) for key ${keyIndex}.`);
-      throw err;
+      console.warn(`[Provider] ${modelConfig.name} model not found (404) for key ${keyIndex}. Skipping model.`);
+      return null;
     }
 
     // Key-specific failures: quota, rate-limit, server errors
@@ -342,8 +368,12 @@ export async function callModelProviderWithKey(
 
     if (isKeyFailure) {
       keyManager.markKeyFailed(keyIndex, msg);
+      console.warn(`[Provider] Key ${keyIndex} marked failed for model ${modelConfig.name}: ${msg}`);
+      return null; // FIX: return null instead of re-throwing
     }
 
-    throw err;
+    // For unexpected errors, log and return null to keep the pipeline alive
+    console.error(`[Provider] Unexpected error on key ${keyIndex}, model ${modelConfig.name}: ${msg}`);
+    return null;
   }
 }

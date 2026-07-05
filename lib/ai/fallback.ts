@@ -1,11 +1,10 @@
 import { MODELS, FALLBACK_CHAIN } from "./models";
 import { callModelProviderWithKey, keyManager } from "./provider";
-import { AIServiceUnavailableError, AIValidationError, AIRateLimitError } from "./errors";
+import { AIServiceUnavailableError, AIValidationError } from "./errors";
 import { buildProfilePrompt, buildRepairPrompt } from "@/lib/prompts";
 import { ProfileSchema, type Profile } from "@/lib/schema";
 import { extractJson } from "@/lib/utils";
 import type { NormalizedSource } from "@/lib/types";
-import { runWithRetry } from "./retry";
 
 // ─── Parse + Validate Helper ──────────────────────────────────────────────────
 
@@ -48,12 +47,18 @@ const PROGRESS = {
 };
 
 // ─── Main Fallback Orchestrator ───────────────────────────────────────────────
+//
+// FIX: Removed runWithRetry wrapper. The wrapper was causing the entire
+// key/model matrix to restart on any AIRateLimitError (including when
+// callModelProviderWithKey threw for an already-cooling key), which
+// caused repeated attempts on the same failing key (index 4 in the logs).
+//
+// Strategy: Outer loop = API key index, inner loop = model.
+// callModelProviderWithKey returns null (not throws) for unavailable keys,
+// so the loop simply continues to the next combination cleanly.
+// A single-pass retry is done via a simple manual backoff sleep if all
+// combinations return null on first pass.
 
-/**
- * Orchestrates the multi-model Gemini fallback chain.
- * Attempts models in order for a single API key before rotating to the next key.
- * If all keys fail, retries using exponential backoff with jitter up to 3 times.
- */
 export async function generateProfileWithFallback(
   name: string,
   context: string,
@@ -62,66 +67,97 @@ export async function generateProfileWithFallback(
 ): Promise<FallbackResult> {
   const prompt = buildProfilePrompt(name, context, sources);
   const totalKeys = keyManager.getTotalKeys();
-  let attemptCount = 0;
 
-  return runWithRetry(async () => {
-    attemptCount++;
-    let fallbackAttempted = false;
+  if (totalKeys === 0) {
+    throw new AIServiceUnavailableError(
+      "No Gemini API keys configured."
+    );
+  }
+
+  let totalAttempts = 0;
+  let firstAttempt = true;
+
+  // Single-pass with optional one backoff retry if no key is available
+  for (let pass = 0; pass < 2; pass++) {
+    if (pass > 0) {
+      // Brief backoff before second pass — allow short cooldowns to expire
+      console.warn(`[Orchestrator] Pass ${pass + 1}: waiting 3s before retry pass...`);
+      if (onProgress) onProgress(PROGRESS.keyRotating, true);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
 
     for (let keyIdx = 0; keyIdx < totalKeys; keyIdx++) {
       for (let modelIdx = 0; modelIdx < FALLBACK_CHAIN.length; modelIdx++) {
         const modelKey = FALLBACK_CHAIN[modelIdx];
         const modelConfig = MODELS[modelKey];
-        const isFallback = fallbackAttempted || modelIdx > 0 || keyIdx > 0;
 
-        if (onProgress) {
-          onProgress(isFallback ? PROGRESS.switching : PROGRESS.start, isFallback);
+        if (!firstAttempt && onProgress) {
+          onProgress(PROGRESS.switching, true);
+        }
+        firstAttempt = false;
+
+        totalAttempts++;
+        console.log(
+          `[Orchestrator] Attempt ${totalAttempts} — Key index: ${keyIdx}, Model: ${modelConfig.name}`
+        );
+
+        if (onProgress && totalAttempts === 1) {
+          onProgress(PROGRESS.start, false);
         }
 
+        // callModelProviderWithKey returns null for unavailable keys — no throw
+        const rawResponse = await callModelProviderWithKey(
+          modelConfig,
+          prompt,
+          keyIdx
+        );
+
+        if (rawResponse === null) {
+          // Key skipped (cooling/unavailable/timeout/404) — try next combination
+          continue;
+        }
+
+        // Got a response — attempt to parse
         try {
-          fallbackAttempted = true;
-          // Call model using specific key index
-          const rawResponse = await callModelProviderWithKey(
-            modelConfig,
-            prompt,
-            keyIdx
+          const profile = parseAndValidate(rawResponse);
+          if (onProgress) onProgress(PROGRESS.finalizing, totalAttempts > 1);
+          console.log(
+            `[Orchestrator] Success — Key index: ${keyIdx}, Model: ${modelConfig.name}, Attempts: ${totalAttempts}`
           );
+          return { profile, modelUsed: modelConfig.name, attempts: totalAttempts };
+        } catch (parseErr: any) {
+          // Schema mismatch — attempt one repair pass on the same key
+          console.warn(
+            `[Orchestrator] Parse failed on key ${keyIdx}, model ${modelConfig.name}: ${parseErr.message}. Attempting repair...`
+          );
+          if (onProgress) onProgress(PROGRESS.repairing, true);
 
-          // Try to parse the response
-          try {
-            const profile = parseAndValidate(rawResponse);
-            if (onProgress) onProgress(PROGRESS.finalizing, isFallback);
-            return { profile, modelUsed: modelConfig.name, attempts: attemptCount };
-          } catch (parseErr: any) {
-            // Schema mismatch — attempt one repair pass on the same key
-            if (onProgress) onProgress(PROGRESS.repairing, isFallback);
+          totalAttempts++;
+          const repairPrompt = buildRepairPrompt(prompt, rawResponse, parseErr.message);
+          const repaired = await callModelProviderWithKey(modelConfig, repairPrompt, keyIdx);
 
-            const repairPrompt = buildRepairPrompt(prompt, rawResponse, parseErr.message);
-            const repaired = await callModelProviderWithKey(modelConfig, repairPrompt, keyIdx);
-            const profile = parseAndValidate(repaired);
-
-            if (onProgress) onProgress(PROGRESS.finalizing, isFallback);
-            return { profile, modelUsed: `${modelConfig.name} (repaired)`, attempts: attemptCount };
+          if (repaired !== null) {
+            try {
+              const profile = parseAndValidate(repaired);
+              if (onProgress) onProgress(PROGRESS.finalizing, true);
+              console.log(
+                `[Orchestrator] Repair successful — Key index: ${keyIdx}, Model: ${modelConfig.name}`
+              );
+              return { profile, modelUsed: `${modelConfig.name} (repaired)`, attempts: totalAttempts };
+            } catch (repairParseErr: any) {
+              console.warn(
+                `[Orchestrator] Repair parse also failed: ${repairParseErr.message}. Continuing to next combination.`
+              );
+            }
           }
-        } catch (err: any) {
-          console.warn(`[Fallback] Key index ${keyIdx}, model ${modelConfig.name} failed: ${err.message}`);
-          // Continue loop to try next model/key combination
+          // Repair failed — continue to next key/model combination
           continue;
         }
       }
     }
+  }
 
-    // If we exhaust all keys and models, throw a transient error to trigger runWithRetry backoff
-    throw new AIServiceUnavailableError(PROGRESS.allExhausted);
-  }, {
-    maxRetries: 2, // 3 attempts total (Attempt 1 -> Attempt 2 -> Attempt 3)
-    initialDelayMs: 2000,
-    backoffFactor: 2,
-    jitter: true,
-  }, (err, retryNum, delayMs) => {
-    console.warn(`[Orchestrator] All keys/models exhausted (Attempt ${retryNum}). Retrying in ${Math.round(delayMs)}ms...`);
-    if (onProgress) {
-      onProgress(PROGRESS.keyRotating, true);
-    }
-  });
+  // All passes exhausted — throw 503 (not 500)
+  console.error(`[Orchestrator] All ${totalKeys} keys × ${FALLBACK_CHAIN.length} models exhausted after ${totalAttempts} attempts.`);
+  throw new AIServiceUnavailableError(PROGRESS.allExhausted);
 }

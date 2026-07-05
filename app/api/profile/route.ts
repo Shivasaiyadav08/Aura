@@ -6,6 +6,7 @@ import { checkRateLimit } from "@/lib/rate-limiter";
 import { cache } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { resolveProfileImage } from "@/lib/image-resolver";
+import { AIServiceUnavailableError, AIRateLimitError, AITimeoutError } from "@/lib/ai/errors";
 import type { ProfileResponse, ErrorResponse } from "@/types";
 import type { Profile } from "@/lib/schema";
 
@@ -13,7 +14,8 @@ import type { Profile } from "@/lib/schema";
 // Extend the serverless function timeout to 60s so long-running profile
 // generation (which can take 25–90s with multiple model fallbacks) never
 // gets cut off by Vercel's default 10s limit.
-export const maxDuration = 60;
+// FIX: Raised to 120s — 5 keys × 5 models × repair passes can take up to 90s
+export const maxDuration = 120;
 
 // ─── Input Validation ─────────────────────────────────────────────────────────
 
@@ -52,6 +54,34 @@ function validateInput(body: unknown): { valid: true; data: RequestBody } | { va
 // NEVER expose raw provider errors to the client.
 
 function toFriendlyError(err: unknown): { message: string; status: number } {
+  // FIX: Check error CLASS and STATUS CODE first — before string matching.
+  // This prevents AIServiceUnavailableError from falling through to HTTP 500.
+
+  // Service unavailable (all providers exhausted) → 503
+  if (err instanceof AIServiceUnavailableError) {
+    return {
+      message: "We're experiencing unusually high demand. Please try again shortly.",
+      status: 503,
+    };
+  }
+
+  // Rate limit / quota exceeded → 503
+  if (err instanceof AIRateLimitError) {
+    return {
+      message: "We're experiencing unusually high demand. Please try again in a moment.",
+      status: 503,
+    };
+  }
+
+  // Timeout → 504
+  if (err instanceof AITimeoutError) {
+    return {
+      message: "The request took longer than expected. Please try again.",
+      status: 504,
+    };
+  }
+
+  // String-based fallbacks for errors not wrapped in typed classes
   const raw = err instanceof Error ? err.message : String(err);
   const lower = raw.toLowerCase();
 
@@ -75,7 +105,8 @@ function toFriendlyError(err: unknown): { message: string; status: number } {
     lower.includes("unavailable") ||
     lower.includes("overloaded") ||
     lower.includes("503") ||
-    lower.includes("fallback chain")
+    lower.includes("fallback chain") ||
+    lower.includes("high demand")
   ) {
     return {
       message: "We're experiencing unusually high demand. Please try again shortly.",
@@ -107,7 +138,15 @@ function toFriendlyError(err: unknown): { message: string; status: number } {
     };
   }
 
-  // Generic fallback
+  // No API keys configured
+  if (lower.includes("no gemini api keys") || lower.includes("api key")) {
+    return {
+      message: "The service is temporarily misconfigured. Please contact support.",
+      status: 503,
+    };
+  }
+
+  // Generic fallback — still 500 only for true unexpected programming errors
   return {
     message: "An unexpected error occurred. Please try again.",
     status: 500,
