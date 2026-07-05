@@ -222,7 +222,10 @@ cp .env.example .env.local
 ```env
 # ── Gemini AI (required)
 # Get free keys at: https://aistudio.google.com/app/apikey
-GEMINI_API_KEY=AIza...
+GEMINI_API_KEY_1=AIza...
+GEMINI_API_KEY_2=AIza.
+GEMINI_API_KEY_3=AIza.
+GEMINI_API_KEY_4=AIza.
 
 
 # ── Tavily Search (required)
