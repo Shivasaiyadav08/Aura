@@ -805,15 +805,13 @@ ${profile.biography || "Not publicly available"}
             ) : (
               <ul className="mt-3 space-y-1.5">
                 {profile.sources.slice(0, 10).map((item) => {
-                  let domain = "";
-                  try { domain = new URL(item.url).hostname.replace("www.", ""); } catch { domain = item.url; }
-                  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=14`;
+                  const num = sourceIdToNumber(item.id);
                   return (
                     <li key={item.id} className="flex items-start gap-1.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={faviconUrl} alt="" aria-hidden="true"
-                        className="flex-shrink-0 w-3 h-3 rounded-sm mt-0.5 opacity-70"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      {/* Source number badge — no external image (avoids CSP violation) */}
+                      <span className="flex-shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 text-[8px] font-bold mt-0.5 select-none">
+                        {num}
+                      </span>
                       <a href={item.url} target="_blank" rel="noopener noreferrer"
                         className="text-[12px] text-blue-600 dark:text-blue-400 hover:underline leading-snug line-clamp-1">
                         {item.title}

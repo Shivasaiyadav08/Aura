@@ -126,6 +126,22 @@ class GeminiKeyManager {
     );
   }
 
+  public getKeyByIndex(index: number): { key: string; index: number } | null {
+    this.refreshStatuses();
+    if (index >= 0 && index < this.keys.length) {
+      return { key: this.keys[index], index };
+    }
+    return null;
+  }
+
+  public getKeyState(index: number): KeyState | null {
+    this.refreshStatuses();
+    if (index >= 0 && index < this.states.length) {
+      return this.states[index];
+    }
+    return null;
+  }
+
   public hasKeys(): boolean { return this.keys.length > 0; }
   public getTotalKeys(): number { return this.keys.length; }
   public getAvailableCount(): number {
@@ -271,4 +287,63 @@ export async function callModelProvider(
     `All ${totalKeys} Gemini API keys exhausted for model ${modelConfig.id}.`,
     "google"
   );
+}
+
+export async function callModelProviderWithKey(
+  modelConfig: ModelConfig,
+  prompt: string,
+  keyIndex: number
+): Promise<string> {
+  if (modelConfig.provider !== "google") {
+    throw new Error(`Unsupported provider: "${modelConfig.provider}". Only "google" (Gemini) is supported.`);
+  }
+
+  const keyInfo = keyManager.getKeyByIndex(keyIndex);
+  if (!keyInfo) {
+    throw new Error(`Key at index ${keyIndex} does not exist.`);
+  }
+
+  const state = keyManager.getKeyState(keyIndex);
+  if (state && state.status !== "available") {
+    throw new AIRateLimitError(
+      `Gemini API key at index ${keyIndex} is currently unavailable (${state.status}).`,
+      "google"
+    );
+  }
+
+  try {
+    return await callGoogleGemini(modelConfig, prompt, keyInfo.key);
+  } catch (err: any) {
+    const msg = err instanceof Error ? err.message : String(err);
+
+    // Timeout: NOT a key failure — key might work for a lighter model.
+    if (err instanceof AITimeoutError) {
+      console.warn(`[Provider] ${modelConfig.name} timeout on key ${keyIndex}.`);
+      throw err;
+    }
+
+    // 404 / model not found: NOT a key failure
+    if (msg.includes("404") || msg.toLowerCase().includes("not found")) {
+      console.warn(`[Provider] ${modelConfig.name} model not found (404) for key ${keyIndex}.`);
+      throw err;
+    }
+
+    // Key-specific failures: quota, rate-limit, server errors
+    const isKeyFailure =
+      msg.includes("429") ||
+      msg.toLowerCase().includes("quota") ||
+      msg.toLowerCase().includes("resource exhausted") ||
+      msg.includes("503") ||
+      msg.includes("500") ||
+      msg.includes("502") ||
+      msg.includes("504") ||
+      msg.toLowerCase().includes("overloaded") ||
+      err instanceof AIRateLimitError;
+
+    if (isKeyFailure) {
+      keyManager.markKeyFailed(keyIndex, msg);
+    }
+
+    throw err;
+  }
 }

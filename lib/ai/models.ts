@@ -15,6 +15,13 @@ export interface ModelConfig {
 // quota on cancelled requests (timed-out requests still consume API quota).
 
 export const MODELS: Record<string, ModelConfig> = {
+  "gemini-2.5-pro": {
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    provider: "google",
+    temperature: 0.1,
+    timeoutMs: 90_000,
+  },
   "gemini-2.5-flash": {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
@@ -47,12 +54,11 @@ export const MODELS: Record<string, ModelConfig> = {
 
 // ─── Fallback Chain ───────────────────────────────────────────────────────────
 // Strategy: best quality → most reliable
-// Each model is tried with ALL available API keys before moving to next.
-// 4 keys × 4 models = up to 16 total attempts.
-
+// Attempting models in order from Pro to 1.5 Flash.
 export const FALLBACK_CHAIN: string[] = [
-  "gemini-2.5-flash",      // Primary — most capable
-  "gemini-2.0-flash",      // Secondary — proven stable
-  "gemini-2.0-flash-lite", // Tertiary — lighter, different quota pool
+  "gemini-2.5-pro",        // Primary — most capable reasoning model
+  "gemini-2.5-flash",      // Secondary
+  "gemini-2.0-flash",      // Tertiary — proven stable
+  "gemini-2.0-flash-lite", // Quaternary
   "gemini-1.5-flash",      // Final — maximum availability
 ];

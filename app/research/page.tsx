@@ -240,8 +240,14 @@ export default function ResearchPage() {
       setState({ status: "success", profile: data.profile, name, context });
       saveToHistory(name, context, data.profile);
       toast(`Report for ${name} generated successfully.`, "success");
-    } catch {
-      setState({ status: "error", message: "Unable to connect. Please check your internet connection and try again.", name, context });
+    } catch (err) {
+      console.error("[Submit Error]", err);
+      setState({
+        status: "error",
+        message: "We encountered a network issue or the server took too long to respond. Please check your internet connection or try again in a moment.",
+        name,
+        context,
+      });
       setMobileFormOpen(true);
     }
   }, [saveToHistory, toast]);

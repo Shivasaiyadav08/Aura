@@ -93,7 +93,7 @@ const BASE_SCORE = {
 
 const FETCH_TIMEOUT_MS    = 10_000;
 const VERIFY_TIMEOUT_MS   = 22_000;
-const MIN_VERIFY_CONF     = 80;             // reject if Gemini < 80 %
+const MIN_VERIFY_CONF     = 88;             // reject if Gemini < 88 %
 const IMG_CACHE_TTL_MS    = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MAX_CANDIDATES      = 6;             // verify at most this many candidates
 
@@ -511,6 +511,12 @@ function computeIdentityScore(
   // ⑥ AniList art is canonically correct for fictional chars → +10
   if (candidate.source === "anilist") bonus += 10;
 
+  // ⑦ Penalty: No name tokens and no company domain matches in the URL/source path (only for general query/web sources)
+  const isDirectApi = ["github", "anilist", "wikipedia-exact"].includes(candidate.source);
+  if (!isDirectApi && !urlContainsName && !companyMatch) {
+    bonus -= 30; // heavy penalty for mismatch
+  }
+
   const nameMatch = nameTokens.every(t => urlLower.includes(t));
 
   return {
@@ -578,7 +584,10 @@ REASON: one sentence`;
 
     const keyInfo = keyManager.getAvailableKey();
     if (!keyInfo) {
-      return { verified: candidate.identityScore >= 90, geminConf: candidate.identityScore };
+      const isVeryHighConfidence =
+        candidate.identityScore >= 94 &&
+        ["wikipedia-exact", "github", "anilist"].includes(candidate.source);
+      return { verified: isVeryHighConfidence, geminConf: candidate.identityScore };
     }
 
     const model = new GoogleGenerativeAI(keyInfo.key).getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -600,8 +609,11 @@ REASON: one sentence`;
     return { verified: isYes && gemConf >= MIN_VERIFY_CONF, geminConf: gemConf };
   } catch (err) {
     console.warn(`[Gemini] Vision unavailable — ${err instanceof Error ? err.message : err}`);
-    // Graceful degradation: trust high-authority sources without pixel verification
-    return { verified: candidate.identityScore >= 90, geminConf: candidate.identityScore };
+    // Graceful degradation: only trust absolute top-tier authoritative sources (exact Wikipedia page matches or GitHub direct)
+    const isVeryHighConfidence =
+      candidate.identityScore >= 94 &&
+      ["wikipedia-exact", "github", "anilist"].includes(candidate.source);
+    return { verified: isVeryHighConfidence, geminConf: candidate.identityScore };
   }
 }
 
