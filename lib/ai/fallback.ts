@@ -46,17 +46,99 @@ const PROGRESS = {
   allExhausted: "We're experiencing unusually high demand. Please try again shortly.",
 };
 
+// ─── Key Cooldown Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Returns the minimum remaining cooldown (ms) across all keys.
+ * Returns 0 if any key is currently available.
+ */
+function getMinCooldownMs(): number {
+  const stats = keyManager.getStats();
+  const now = Date.now();
+  let min = Infinity;
+  for (const s of stats) {
+    if (s.status === "available") return 0; // at least one key ready
+    if (s.cooldownUntil !== null) {
+      const remaining = s.cooldownUntil - now;
+      if (remaining > 0 && remaining < min) min = remaining;
+    }
+  }
+  return min === Infinity ? 0 : min;
+}
+
+// ─── Single Matrix Pass ───────────────────────────────────────────────────────
+
+async function runMatrixPass(
+  prompt: string,
+  totalKeys: number,
+  totalAttempts: { value: number },
+  onProgress?: (message: string, isFallback: boolean) => void
+): Promise<FallbackResult | null> {
+  // MODEL outer → KEY inner: try best model on all keys before downgrading
+  for (let modelIdx = 0; modelIdx < FALLBACK_CHAIN.length; modelIdx++) {
+    const modelKey = FALLBACK_CHAIN[modelIdx];
+    const modelConfig = MODELS[modelKey];
+
+    for (let keyIdx = 0; keyIdx < totalKeys; keyIdx++) {
+      totalAttempts.value++;
+
+      console.log(
+        `[Orchestrator] Attempt ${totalAttempts.value} — Model: ${modelConfig.name}, Key: ${keyIdx}`
+      );
+
+      if (onProgress && totalAttempts.value === 1) {
+        onProgress(PROGRESS.start, false);
+      } else if (onProgress && modelIdx > 0) {
+        onProgress(PROGRESS.switching, true);
+      } else if (onProgress) {
+        onProgress(PROGRESS.keyRotating, true);
+      }
+
+      // Returns null for cooling/unavailable/timeout/404 — never throws
+      const rawResponse = await callModelProviderWithKey(modelConfig, prompt, keyIdx);
+      if (rawResponse === null) continue;
+
+      // Got a response — attempt to parse
+      try {
+        const profile = parseAndValidate(rawResponse);
+        if (onProgress) onProgress(PROGRESS.finalizing, totalAttempts.value > 1);
+        console.log(`[Orchestrator] ✓ Success — Model: ${modelConfig.name}, Key: ${keyIdx}, Attempts: ${totalAttempts.value}`);
+        return { profile, modelUsed: modelConfig.name, attempts: totalAttempts.value };
+      } catch (parseErr: any) {
+        // One repair attempt on same key
+        console.warn(`[Orchestrator] Parse failed: ${parseErr.message}. Repairing...`);
+        if (onProgress) onProgress(PROGRESS.repairing, true);
+
+        totalAttempts.value++;
+        const repairPrompt = buildRepairPrompt(prompt, rawResponse, parseErr.message);
+        const repaired = await callModelProviderWithKey(modelConfig, repairPrompt, keyIdx);
+
+        if (repaired !== null) {
+          try {
+            const profile = parseAndValidate(repaired);
+            if (onProgress) onProgress(PROGRESS.finalizing, true);
+            console.log(`[Orchestrator] ✓ Repair success — Model: ${modelConfig.name}, Key: ${keyIdx}`);
+            return { profile, modelUsed: `${modelConfig.name} (repaired)`, attempts: totalAttempts.value };
+          } catch (repairErr: any) {
+            console.warn(`[Orchestrator] Repair parse also failed: ${repairErr.message}`);
+          }
+        }
+        continue;
+      }
+    }
+  }
+
+  return null; // All combinations returned null (all keys cooling)
+}
+
 // ─── Main Fallback Orchestrator ───────────────────────────────────────────────
 //
-// Loop order: MODEL (outer) → KEY (inner).
+// Strategy: MODEL (outer) → KEY (inner).
+// Exhausts all API keys on the best model before downgrading to the next tier.
 //
-// This is the correct strategy: exhaust all API keys on the best model
-// BEFORE downgrading to a worse model. The previous key→model order
-// meant we tried all 5 models on key 0 (all likely quota-exceeded together)
-// before ever trying key 1 with the best model.
-//
-// No runWithRetry wrapper — that was causing matrix restarts.
-// callModelProviderWithKey returns null (never throws) for skipped keys.
+// Smart recovery: if pass-1 returns null (all keys cooling), we check the
+// shortest remaining cooldown. If it's within our budget we wait exactly
+// that long and run pass-2, giving us a real chance at recovery within 60s.
 
 export async function generateProfileWithFallback(
   name: string,
@@ -71,75 +153,39 @@ export async function generateProfileWithFallback(
     throw new AIServiceUnavailableError("No Gemini API keys configured.");
   }
 
-  let totalAttempts = 0;
-  let firstAttempt = true;
+  const totalAttempts = { value: 0 };
 
-  // MODEL outer loop → KEY inner loop
-  for (let modelIdx = 0; modelIdx < FALLBACK_CHAIN.length; modelIdx++) {
-    const modelKey = FALLBACK_CHAIN[modelIdx];
-    const modelConfig = MODELS[modelKey];
+  // ── Pass 1 ────────────────────────────────────────────────────────────────
+  const result1 = await runMatrixPass(prompt, totalKeys, totalAttempts, onProgress);
+  if (result1) return result1;
 
-    for (let keyIdx = 0; keyIdx < totalKeys; keyIdx++) {
-      if (!firstAttempt && onProgress) {
-        onProgress(modelIdx > 0 ? PROGRESS.switching : PROGRESS.keyRotating, true);
-      }
-      firstAttempt = false;
-      totalAttempts++;
+  // ── Pass 1 returned null: all keys are cooling ────────────────────────────
+  // Check if any key will recover soon enough to fit within our 55s budget.
+  // We leave 20s for the actual API call, so we can wait at most 35s.
+  const MAX_WAIT_MS = 35_000;
+  const minCooldown = getMinCooldownMs();
 
-      console.log(
-        `[Orchestrator] Attempt ${totalAttempts} — Model: ${modelConfig.name}, Key index: ${keyIdx}`
-      );
+  if (minCooldown > 0 && minCooldown <= MAX_WAIT_MS) {
+    const waitMs = minCooldown + 500; // +500ms buffer for clock skew
+    console.warn(
+      `[Orchestrator] All keys cooling. Shortest cooldown: ${Math.round(minCooldown / 1000)}s. ` +
+      `Waiting ${Math.round(waitMs / 1000)}s then retrying...`
+    );
+    if (onProgress) onProgress(PROGRESS.keyRotating, true);
+    await new Promise(resolve => setTimeout(resolve, waitMs));
 
-      if (onProgress && totalAttempts === 1) {
-        onProgress(PROGRESS.start, false);
-      }
-
-      // Returns null for cooling/unavailable/timeout/404 — never throws
-      const rawResponse = await callModelProviderWithKey(modelConfig, prompt, keyIdx);
-
-      if (rawResponse === null) {
-        // Key skipped — try next key for the same model
-        continue;
-      }
-
-      // Got a response — attempt to parse
-      try {
-        const profile = parseAndValidate(rawResponse);
-        if (onProgress) onProgress(PROGRESS.finalizing, totalAttempts > 1);
-        console.log(
-          `[Orchestrator] ✓ Success — Model: ${modelConfig.name}, Key: ${keyIdx}, Attempts: ${totalAttempts}`
-        );
-        return { profile, modelUsed: modelConfig.name, attempts: totalAttempts };
-      } catch (parseErr: any) {
-        // Attempt one repair pass on the same key
-        console.warn(
-          `[Orchestrator] Parse failed (${parseErr.message}). Attempting repair on Model: ${modelConfig.name}, Key: ${keyIdx}`
-        );
-        if (onProgress) onProgress(PROGRESS.repairing, true);
-
-        totalAttempts++;
-        const repairPrompt = buildRepairPrompt(prompt, rawResponse, parseErr.message);
-        const repaired = await callModelProviderWithKey(modelConfig, repairPrompt, keyIdx);
-
-        if (repaired !== null) {
-          try {
-            const profile = parseAndValidate(repaired);
-            if (onProgress) onProgress(PROGRESS.finalizing, true);
-            console.log(`[Orchestrator] ✓ Repair successful — Model: ${modelConfig.name}, Key: ${keyIdx}`);
-            return { profile, modelUsed: `${modelConfig.name} (repaired)`, attempts: totalAttempts };
-          } catch (repairErr: any) {
-            console.warn(`[Orchestrator] Repair parse also failed: ${repairErr.message}`);
-          }
-        }
-        // Repair failed — continue to next key for this model
-        continue;
-      }
-    }
+    // ── Pass 2 ──────────────────────────────────────────────────────────────
+    const result2 = await runMatrixPass(prompt, totalKeys, totalAttempts, onProgress);
+    if (result2) return result2;
+  } else if (minCooldown > MAX_WAIT_MS) {
+    console.warn(
+      `[Orchestrator] All keys cooling, min cooldown ${Math.round(minCooldown / 1000)}s exceeds budget. Failing fast.`
+    );
   }
 
-  // All models × all keys exhausted
+  // All passes exhausted
   console.error(
-    `[Orchestrator] ✗ All ${FALLBACK_CHAIN.length} models × ${totalKeys} keys exhausted after ${totalAttempts} attempts.`
+    `[Orchestrator] ✗ All ${FALLBACK_CHAIN.length} models × ${totalKeys} keys exhausted after ${totalAttempts.value} attempts.`
   );
   throw new AIServiceUnavailableError(PROGRESS.allExhausted);
 }

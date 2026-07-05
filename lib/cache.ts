@@ -1,72 +1,85 @@
 let redisClient: any = null;
 let redisStatus: "disconnected" | "connecting" | "connected" | "failed" = "disconnected";
 
-// ─── Redis Initialization ─────────────────────────────────────────────────────
+// ─── Redis / Upstash Initialization ──────────────────────────────────────────
+// Supports two URL formats:
+//   1. rediss://... or redis://... → raw Redis protocol via ioredis
+//   2. https://...upstash.io → Upstash REST API (use @upstash/redis if available)
+//
+// The ENOENT error occurs when ioredis receives an https:// URL and tries
+// to interpret the hostname as a Unix socket path. We detect this and skip
+// ioredis entirely for REST-format Upstash URLs.
 
 if (process.env.REDIS_URL) {
   try {
-    const Redis = require("ioredis");
-    let url = process.env.REDIS_URL.trim();
+    const url = process.env.REDIS_URL.trim();
 
-    // Normalize the URL scheme.
-    // Some environment variable editors strip the scheme leaving "//host:port".
-    // ioredis interprets scheme-less URLs as Unix socket paths → ENOENT.
-    // Upstash always uses TLS so we default to rediss:// when scheme is missing.
-    if (url.startsWith("//")) {
-      url = "rediss:" + url;
-      console.log("[Cache] Redis URL scheme was missing — normalized to rediss://");
-    } else if (url.startsWith("redis://") && url.includes("upstash")) {
-      // Upstash requires TLS even if URL says redis://
-      url = url.replace("redis://", "rediss://");
-      console.log("[Cache] Redis URL upgraded to rediss:// for Upstash TLS compatibility");
-    }
+    if (url.startsWith("https://") || url.startsWith("http://")) {
+      // Upstash REST URL — ioredis cannot handle this.
+      // Skip Redis and use in-memory cache. To fix, set REDIS_URL to the
+      // rediss:// protocol URL from Upstash console → Details → Redis URL.
+      console.warn(
+        "[Cache] REDIS_URL is an HTTP URL (Upstash REST format). " +
+        "ioredis needs the rediss:// protocol URL from Upstash console → Details → Redis URL. " +
+        "Using in-memory cache until corrected."
+      );
+      redisStatus = "failed";
+    } else {
+      const Redis = require("ioredis");
 
-    // Upstash (and most managed Redis providers) use rediss:// for TLS.
-    // ioredis does NOT auto-detect TLS from the scheme — you must pass tls:{}.
-    // Without this, ioredis strips the scheme and tries the hostname as a
-    // Unix socket path → ENOENT error.
-    const isTLS = url.startsWith("rediss://");
+      // Normalize scheme: some env editors strip the scheme leaving "//host:port"
+      let normalizedUrl = url;
+      if (url.startsWith("//")) {
+        normalizedUrl = "rediss:" + url;
+        console.log("[Cache] Redis URL scheme was missing — normalized to rediss://");
+      } else if (url.startsWith("redis://") && url.includes("upstash")) {
+        normalizedUrl = url.replace("redis://", "rediss://");
+        console.log("[Cache] Redis URL upgraded to rediss:// for Upstash TLS");
+      }
 
-    redisClient = new Redis(url, {
-      tls: isTLS ? { rejectUnauthorized: false } : undefined,
-      lazyConnect: true,
-      maxRetriesPerRequest: 2,
-      connectTimeout: 8000,
-      commandTimeout: 5000,
-      retryStrategy(times: number) {
-        if (times > 3) {
-          console.warn("[Cache] Redis retry limit reached. Using in-memory cache only.");
-          return null;
+      const isTLS = normalizedUrl.startsWith("rediss://");
+
+      redisClient = new Redis(normalizedUrl, {
+        tls: isTLS ? { rejectUnauthorized: false } : undefined,
+        lazyConnect: true,
+        maxRetriesPerRequest: 2,
+        connectTimeout: 8000,
+        commandTimeout: 5000,
+        retryStrategy(times: number) {
+          if (times > 3) {
+            console.warn("[Cache] Redis retry limit reached. Using in-memory cache only.");
+            return null;
+          }
+          return Math.min(times * 500, 2000);
+        },
+        enableOfflineQueue: false,
+      });
+
+      redisStatus = "connecting";
+
+      redisClient.on("connect", () => {
+        redisStatus = "connected";
+        console.log("[Cache] Redis connected successfully.");
+      });
+      redisClient.on("ready", () => { redisStatus = "connected"; });
+      redisClient.on("error", (err: any) => {
+        if (redisStatus !== "failed") {
+          console.warn(`[Cache] Redis error — falling back to in-memory: ${err.message}`);
         }
-        return Math.min(times * 500, 2000);
-      },
-      enableOfflineQueue: false,
-    });
+        redisStatus = "failed";
+      });
+      redisClient.on("close", () => {
+        if (redisStatus === "connected") {
+          console.warn("[Cache] Redis connection closed. Using in-memory cache.");
+        }
+        redisStatus = "disconnected";
+      });
 
-    redisStatus = "connecting";
-
-    redisClient.on("connect", () => {
-      redisStatus = "connected";
-      console.log("[Cache] Redis connected successfully.");
-    });
-    redisClient.on("ready", () => { redisStatus = "connected"; });
-    redisClient.on("error", (err: any) => {
-      if (redisStatus !== "failed") {
-        console.warn(`[Cache] Redis error — falling back to in-memory: ${err.message}`);
-      }
-      redisStatus = "failed";
-    });
-    redisClient.on("close", () => {
-      if (redisStatus === "connected") {
-        console.warn("[Cache] Redis connection closed. Using in-memory cache.");
-      }
-      redisStatus = "disconnected";
-    });
-
-    redisClient.connect().catch((err: any) => {
-      console.warn(`[Cache] Redis connect failed: ${err.message}. Using in-memory cache.`);
-      redisStatus = "failed";
-    });
+      redisClient.connect().catch((err: any) => {
+        console.warn(`[Cache] Redis connect failed: ${err.message}. Using in-memory cache.`);
+        redisStatus = "failed";
+      });
+    }
 
   } catch (err: any) {
     console.warn(`[Cache] Redis init error: ${err.message}. Using in-memory cache.`);

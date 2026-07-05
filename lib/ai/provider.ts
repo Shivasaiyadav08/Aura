@@ -124,13 +124,13 @@ class GeminiKeyManager {
 
     if (isQuota) {
       s.status = "quota-exceeded";
-      s.cooldownUntil = Date.now() + 90_000; // 90s (Google free quota resets per minute)
+      s.cooldownUntil = Date.now() + 62_000; // 62s — Gemini free tier resets per 60s
     } else if (isServer) {
       s.status = "cooling";
-      s.cooldownUntil = Date.now() + 30_000; // 30s
+      s.cooldownUntil = Date.now() + 10_000; // 10s
     } else {
       s.status = "rate-limited";
-      s.cooldownUntil = Date.now() + 45_000; // 45s
+      s.cooldownUntil = Date.now() + 15_000; // 15s
     }
 
     // Do NOT forcibly advance roundRobinIndex here — getAvailableKey already manages rotation
