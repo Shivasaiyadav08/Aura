@@ -6,7 +6,20 @@ let redisStatus: "disconnected" | "connecting" | "connected" | "failed" = "disco
 if (process.env.REDIS_URL) {
   try {
     const Redis = require("ioredis");
-    const url = process.env.REDIS_URL.trim();
+    let url = process.env.REDIS_URL.trim();
+
+    // Normalize the URL scheme.
+    // Some environment variable editors strip the scheme leaving "//host:port".
+    // ioredis interprets scheme-less URLs as Unix socket paths → ENOENT.
+    // Upstash always uses TLS so we default to rediss:// when scheme is missing.
+    if (url.startsWith("//")) {
+      url = "rediss:" + url;
+      console.log("[Cache] Redis URL scheme was missing — normalized to rediss://");
+    } else if (url.startsWith("redis://") && url.includes("upstash")) {
+      // Upstash requires TLS even if URL says redis://
+      url = url.replace("redis://", "rediss://");
+      console.log("[Cache] Redis URL upgraded to rediss:// for Upstash TLS compatibility");
+    }
 
     // Upstash (and most managed Redis providers) use rediss:// for TLS.
     // ioredis does NOT auto-detect TLS from the scheme — you must pass tls:{}.

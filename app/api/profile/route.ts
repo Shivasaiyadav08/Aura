@@ -11,11 +11,9 @@ import type { ProfileResponse, ErrorResponse } from "@/types";
 import type { Profile } from "@/lib/schema";
 
 // ─── Vercel Runtime Config ────────────────────────────────────────────────────
-// Extend the serverless function timeout to 60s so long-running profile
-// generation (which can take 25–90s with multiple model fallbacks) never
-// gets cut off by Vercel's default 10s limit.
-// FIX: Raised to 120s — 5 keys × 5 models × repair passes can take up to 90s
-export const maxDuration = 120;
+// 60s is the hard cap for Vercel Free/Hobby plans.
+// Pro allows up to 300s but we keep 60 for universal compatibility.
+export const maxDuration = 60;
 
 // ─── Input Validation ─────────────────────────────────────────────────────────
 
@@ -188,87 +186,99 @@ export async function POST(request: NextRequest): Promise<NextResponse<ProfileRe
   const { name, context } = validation.data;
   const cacheKey = `profile:${name.toLowerCase()}:${context.toLowerCase()}`;
 
+  // Hard 55s deadline guard — returns a clean 503 before Vercel's hard-kill at 60s.
+  // We keep a reference to the timer so we can clear it on success (prevents process leak).
+  let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
+  const deadline = new Promise<never>((_, reject) => {
+    deadlineTimer = setTimeout(
+      () => reject(new AIServiceUnavailableError("The request took too long. Please try again.")),
+      55_000
+    );
+  });
+
   try {
-    // 3. Check cache first
-    const cached = await cache.get<Profile>(cacheKey);
-    if (cached) {
-      const latency = Date.now() - startTime;
-      logger.log({ name, context, modelUsed: "Cache", status: "success", latencyMs: latency, cacheHit: true, retryCount: 0 });
-      return NextResponse.json<ProfileResponse>({
-        success: true,
-        profile: cached,
-        modelUsed: "Cached",
-        latencyMs: latency,
-        cacheHit: true,
-      });
-    }
+    const response = await Promise.race([
+      (async () => {
+        // 3. Check cache first
+        const cached = await cache.get<Profile>(cacheKey);
+        if (cached) {
+          const latency = Date.now() - startTime;
+          logger.log({ name, context, modelUsed: "Cache", status: "success", latencyMs: latency, cacheHit: true, retryCount: 0 });
+          return NextResponse.json<ProfileResponse>({
+            success: true,
+            profile: cached,
+            modelUsed: "Cached",
+            latencyMs: latency,
+            cacheHit: true,
+          });
+        }
 
-    // 4. Parallel: search + (future: image pre-fetch)
-    const sources = await searchForPerson(name, context);
+        // 4. Web search
+        const sources = await searchForPerson(name, context);
 
-    // 5. AI generation with fallback chain
-    let result = await generateProfileWithFallback(name, context, sources);
+        // 5. AI generation with fallback chain
+        const result = await generateProfileWithFallback(name, context, sources);
 
-    // 6. Post-generation validation
-    let validity = validateGeneratedProfile(result.profile);
-    if (!validity.valid) {
-      console.warn(`[Profile API] Validation failed: ${validity.reason}. Retrying once...`);
-      result = await generateProfileWithFallback(name, context, sources);
-      validity = validateGeneratedProfile(result.profile);
-      if (!validity.valid) {
-        // Soft fail — return what we have rather than full error
-        console.warn(`[Profile API] Second validation also failed: ${validity.reason}. Using best-effort result.`);
-      }
-    }
+        // 6. Post-generation validation (soft fail — return best-effort result)
+        const validity = validateGeneratedProfile(result.profile);
+        if (!validity.valid) {
+          console.warn(`[Profile API] Validation soft-fail: ${validity.reason}. Using best-effort result.`);
+        }
 
-    // 7. Resolve profile image — entity-accurate ImageSearchService:
-    //    Extracts metadata from Tavily results → builds rich query →
-    //    multi-source providers → identity scoring → Gemini Vision verify
-    //    Non-fatal: any failure falls back gracefully to initials.
-    if (!result.profile.profileImageUrl) {
-      try {
-        const imageUrl = await resolveProfileImage(
-          sources,                                           // full NormalizedSource[] with content
-          name,
-          context,
-          {
-            occupation : result.profile.basicDetails?.occupation,
-            company    : result.profile.basicDetails?.currentCompany,
-            industry   : result.profile.basicDetails?.industry,
-            nationality: result.profile.basicDetails?.nationality,
-            location   : [
-              result.profile.basicDetails?.currentCity,
-              result.profile.basicDetails?.currentCountry,
-            ].filter(Boolean).join(" ") || undefined,
+        // 7. Resolve profile image (non-fatal)
+        if (!result.profile.profileImageUrl) {
+          try {
+            const imageUrl = await resolveProfileImage(
+              sources,
+              name,
+              context,
+              {
+                occupation : result.profile.basicDetails?.occupation,
+                company    : result.profile.basicDetails?.currentCompany,
+                industry   : result.profile.basicDetails?.industry,
+                nationality: result.profile.basicDetails?.nationality,
+                location   : [
+                  result.profile.basicDetails?.currentCity,
+                  result.profile.basicDetails?.currentCountry,
+                ].filter(Boolean).join(" ") || undefined,
+              }
+            );
+            if (imageUrl) result.profile.profileImageUrl = imageUrl;
+          } catch (imgErr) {
+            console.warn("[Profile API] Image resolution failed (non-fatal):", imgErr);
           }
-        );
-        if (imageUrl) result.profile.profileImageUrl = imageUrl;
-      } catch (err) {
-        console.warn("[Profile API] Image resolution failed (non-fatal):", err);
-      }
-    }
+        }
 
-    // 8. Cache result
-    await cache.set(cacheKey, result.profile);
+        // 8. Cache result
+        await cache.set(cacheKey, result.profile);
 
-    const latency = Date.now() - startTime;
-    logger.log({
-      name, context,
-      modelUsed: result.modelUsed,
-      status: "success",
-      latencyMs: latency,
-      cacheHit: false,
-      retryCount: result.attempts - 1,
-    });
+        const latency = Date.now() - startTime;
+        logger.log({
+          name, context,
+          modelUsed: result.modelUsed,
+          status: "success",
+          latencyMs: latency,
+          cacheHit: false,
+          retryCount: result.attempts - 1,
+        });
 
-    return NextResponse.json<ProfileResponse>({
-      success: true,
-      profile: result.profile,
-      modelUsed: result.modelUsed,
-      latencyMs: latency,
-      cacheHit: false,
-    });
+        return NextResponse.json<ProfileResponse>({
+          success: true,
+          profile: result.profile,
+          modelUsed: result.modelUsed,
+          latencyMs: latency,
+          cacheHit: false,
+        });
+      })(),
+      deadline,
+    ]);
+
+    // Clear deadline timer so it doesn't fire after the response is sent
+    if (deadlineTimer) clearTimeout(deadlineTimer);
+    return response;
+
   } catch (err: unknown) {
+    if (deadlineTimer) clearTimeout(deadlineTimer);
     const latency = Date.now() - startTime;
     const { message, status } = toFriendlyError(err);
 

@@ -11,8 +11,8 @@ export interface ModelConfig {
 }
 
 // ─── Gemini Model Registry ────────────────────────────────────────────────────
-// Only verified working model IDs. Timeouts are generous to avoid burning
-// quota on cancelled requests (timed-out requests still consume API quota).
+// Timeouts are kept SHORT so the 60s Vercel function budget isn't blown
+// by a single hanging request. The fallback chain handles quality degradation.
 
 export const MODELS: Record<string, ModelConfig> = {
   "gemini-2.5-pro": {
@@ -20,41 +20,42 @@ export const MODELS: Record<string, ModelConfig> = {
     name: "Gemini 2.5 Pro",
     provider: "google",
     temperature: 0.1,
-    timeoutMs: 90_000,
+    timeoutMs: 25_000, // 25s
   },
   "gemini-2.5-flash": {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
     provider: "google",
     temperature: 0.1,
-    timeoutMs: 90_000, // 90s — 2.5-flash needs time to think
+    timeoutMs: 22_000, // 22s
   },
   "gemini-2.0-flash": {
     id: "gemini-2.0-flash",
     name: "Gemini 2.0 Flash",
     provider: "google",
     temperature: 0.1,
-    timeoutMs: 60_000, // 60s
+    timeoutMs: 20_000, // 20s
   },
   "gemini-2.0-flash-lite": {
     id: "gemini-2.0-flash-lite",
     name: "Gemini 2.0 Flash Lite",
     provider: "google",
     temperature: 0.1,
-    timeoutMs: 45_000, // 45s — lighter model, faster
+    timeoutMs: 15_000, // 15s
   },
   "gemini-1.5-flash": {
     id: "gemini-1.5-flash",
     name: "Gemini 1.5 Flash",
     provider: "google",
     temperature: 0.1,
-    timeoutMs: 60_000, // 60s — most stable, broadest availability
+    timeoutMs: 15_000, // 15s — most stable, broadest availability
   },
 };
 
 // ─── Fallback Chain ───────────────────────────────────────────────────────────
-// Strategy: best quality → most reliable
-// Attempting models in order from Pro to 1.5 Flash.
+// Strategy: best quality → most reliable.
+// The orchestrator iterates MODEL first, then KEY — so we exhaust all keys
+// on the best model before falling to the next model tier.
 export const FALLBACK_CHAIN: string[] = [
   "gemini-2.5-pro",        // Primary — most capable reasoning model
   "gemini-2.5-flash",      // Secondary
