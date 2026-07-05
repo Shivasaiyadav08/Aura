@@ -212,6 +212,10 @@ async function callGoogleGemini(
       generationConfig: {
         temperature: modelConfig.temperature,
         responseMimeType: "text/plain",
+        // Disable thinking mode for 2.5-flash/pro when flagged.
+        // Without this, 2.5-flash enters a slow reasoning loop (30-90s)
+        // and times out every single call, wasting the entire budget.
+        ...(modelConfig.disableThinking ? { thinkingConfig: { thinkingBudget: 0 } } as any : {}),
       },
     });
 
